@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JARVIS — Globo</title>
+<link rel="stylesheet" href="cesium/Widgets/CesiumWidget/CesiumWidget.css">
+<link rel="stylesheet" href="estilo.css">
+<script>window.CESIUM_BASE_URL = "cesium/";</script>
+<script src="cesium/Cesium.js"></script>
+</head>
+<body>
+
+<!-- Desenhos dos botoes: vetor, para ficar nitido em qualquer tela. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-terra" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3.2 3 3.2 15 0 18M12 3c-3.2 3-3.2 15 0 18"/></symbol>
+    <symbol id="i-mapa" viewBox="0 0 24 24"><path d="M9 4 3 6.2v13.6L9 18l6 2 6-2.2V4.2L15 6 9 4zM9 4v14M15 6v14"/></symbol>
+    <symbol id="i-holo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path stroke-dasharray="1.6 2.4" d="M3.6 9h16.8M3.6 15h16.8M12 3v18M7.2 4.6c-2.4 4.8-2.4 10 0 14.8M16.8 4.6c2.4 4.8 2.4 10 0 14.8"/></symbol>
+    <symbol id="i-lua" viewBox="0 0 24 24"><path d="M20 14.6A8.6 8.6 0 1 1 9.4 4a7 7 0 0 0 10.6 10.6z"/></symbol>
+    <symbol id="i-nomes" viewBox="0 0 24 24"><path d="M5 7V5h14v2M12 5v14M9 19h6"/></symbol>
+    <symbol id="i-bordas" viewBox="0 0 24 24"><path stroke-dasharray="3 2.4" d="M5 7.5 11 4l8 4-2 9.5-8 2.5-5-6z"/></symbol>
+    <symbol id="i-relevo" viewBox="0 0 24 24"><path d="m2.5 19 6.5-11 4 6 2-3 6.5 8z"/></symbol>
+    <symbol id="i-girar" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 3.5v5h-5"/></symbol>
+    <symbol id="i-regua" viewBox="0 0 24 24"><path d="M3 16.5 16.5 3 21 7.5 7.5 21zM7.2 12.2l2.2 2.2M10.4 9l3.2 3.2M13.6 5.8l2.2 2.2"/></symbol>
+    <symbol id="i-pessoa" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.6"/><path d="M8 11.4C8 9.8 9.2 8.8 10.6 8.8h2.8c1.4 0 2.6 1 2.6 2.6V15h-1.8v6.2h-4.4V15H8z"/></symbol>
+    <symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-menos" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-fechar" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-tela" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+    <symbol id="i-busca" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></symbol>
+    <symbol id="i-voltar" viewBox="0 0 24 24"><path d="M14.5 5.5 8 12l6.5 6.5"/></symbol>
+    <symbol id="i-fora" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></symbol>
+    <symbol id="i-alvo" viewBox="0 0 24 24"><path d="M12 21s7-6.4 7-11.5A7 7 0 0 0 5 9.5C5 14.6 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.4"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.4v.2"/></symbol>
+  </defs>
+</svg>
+
+<div id="palco"></div>
+
+<!-- Anel de luz e o aro do HUD em volta da Terra (segue a camera). -->
+<div id="halo" aria-hidden="true"></div>
+<svg id="aro" viewBox="-100 -100 200 200" aria-hidden="true">
+  <g class="aro-a"><circle r="97" stroke-dasharray="1.2 3.1"/></g>
+  <g class="aro-b"><circle r="93.5" stroke-dasharray="42 11 6 11"/></g>
+  <g class="aro-c"><circle r="99.5" stroke-dasharray="74 240"/></g>
+</svg>
+
+<header id="topo">
+  <div id="marca" class="vidro">
+    <span class="marca-ponto"></span>
+    <div><b>J.A.R.V.I.S</b><small data-t="titulo"></small></div>
+  </div>
+
+  <div id="busca" class="vidro" role="search">
+    <svg class="ic"><use href="#i-busca"/></svg>
+    <input id="busca-campo" type="text" autocomplete="off" spellcheck="false" maxlength="120">
+    <button id="busca-limpar" class="btn-ic" hidden aria-label="Limpar"><svg class="ic"><use href="#i-fechar"/></svg></button>
+    <div id="busca-lista" class="vidro" hidden></div>
+  </div>
+
+  <div id="canto">
+    <div id="relogio" class="vidro"><b id="relogio-hora">--:--</b><small id="relogio-fuso"></small></div>
+    <span id="estado-rede" class="vidro" hidden></span>
+    <button id="btn-tela" class="vidro btn-ic" data-dica-t="telaCheia" data-lado="baixo"><svg class="ic"><use href="#i-tela"/></svg></button>
+    <button id="btn-fechar" class="vidro btn-ic" data-dica-t="fechar" data-lado="baixo"><svg class="ic"><use href="#i-fechar"/></svg></button>
+  </div>
+</header>
+
+<nav id="trilho" class="vidro">
+  <button class="bt" data-modo="satelite" data-dica-t="modoSatelite"><svg class="ic"><use href="#i-terra"/></svg></button>
+  <button class="bt" data-modo="mapa" data-dica-t="modoMapa"><svg class="ic"><use href="#i-mapa"/></svg></button>
+  <button class="bt" data-modo="holograma" data-dica-t="modoHolograma"><svg class="ic"><use href="#i-holo"/></svg></button>
+  <hr>
+  <button class="bt" id="bt-rua" data-dica-t="ferrRua"><svg class="ic cheio"><use href="#i-pessoa"/></svg></button>
+  <button class="bt" id="bt-medir" data-dica-t="ferrMedir"><svg class="ic"><use href="#i-regua"/></svg></button>
+  <hr>
+  <button class="bt" id="bt-noite" data-dica-t="luzNoite"><svg class="ic"><use href="#i-lua"/></svg></button>
+  <button class="bt" id="bt-nomes" data-dica-t="luzNomes"><svg class="ic"><use href="#i-nomes"/></svg></button>
+  <button class="bt" id="bt-bordas" data-dica-t="luzBordas"><svg class="ic"><use href="#i-bordas"/></svg></button>
+  <button class="bt" id="bt-relevo" data-dica-t="luzRelevo"><svg class="ic"><use href="#i-relevo"/></svg></button>
+  <button class="bt" id="bt-girar" data-dica-t="luzGirar"><svg class="ic"><use href="#i-girar"/></svg></button>
+</nav>
+
+<div id="navega">
+  <button id="bussola" class="vidro" data-dica-t="norte"><svg viewBox="-12 -12 24 24"><g id="agulha"><path class="n" d="M0-10 3 0h-6z"/><path class="s" d="M0 10 3 0h-6z"/></g></svg></button>
+  <button id="bt-3d" class="vidro btn-ic" data-dica-t="inclinar"><span>3D</span></button>
+  <div class="vidro navega-zoom">
+    <button id="bt-mais" class="btn-ic" data-dica-t="aproximar"><svg class="ic"><use href="#i-mais"/></svg></button>
+    <button id="bt-menos" class="btn-ic" data-dica-t="afastar"><svg class="ic"><use href="#i-menos"/></svg></button>
+    <button id="bt-terra" class="btn-ic" data-dica-t="terraInteira"><svg class="ic"><use href="#i-terra"/></svg></button>
+  </div>
+</div>
+
+<div id="rastro" class="vidro" hidden></div>
+<div id="aviso" class="vidro" hidden></div>
+<div id="dica-cursor" hidden></div>
+
+<aside id="ficha" class="vidro" hidden></aside>
+
+<footer id="base">
+  <div id="leitura" class="vidro"></div>
+  <div id="creditos"></div>
+  <button id="bt-fontes" class="btn-ic" data-dica-t="fontes" data-lado="cima"><svg class="ic"><use href="#i-info"/></svg></button>
+</footer>
+
+<div id="menu" class="vidro" hidden></div>
+
+<section id="rua" hidden>
+  <div id="rua-topo" class="vidro">
+    <button id="rua-voltar" class="bt-texto"><svg class="ic"><use href="#i-voltar"/></svg><span data-t="voltarGlobo"></span></button>
+    <div id="rua-titulo"></div>
+    <div id="rua-abas">
+      <button data-aba="street" data-t="abaStreet"></button>
+      <button data-aba="maps" data-t="abaMaps"></button>
+    </div>
+    <button id="rua-parar" hidden><i></i><span data-t="pararPasseio"></span></button>
+    <button id="rua-fora" class="bt-texto"><svg class="ic"><use href="#i-fora"/></svg><span data-t="abrirNavegador"></span></button>
+  </div>
+  <div id="rua-corpo"></div>
+  <div id="rua-dica" data-t="ruaDica"></div>
+  <div id="rua-guia" hidden></div>
+</section>
+
+<div id="fontes-lista" class="vidro" hidden></div>
+
+<div id="carga">
+  <div class="carga-reator" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+  <div class="carga-nome">J.A.R.V.I.S</div>
+  <div id="carga-texto"></div>
+  <div class="carga-barra"><span id="carga-progresso"></span></div>
+</div>
+
+<div id="falha" hidden></div>
+
+<script type="module" src="js/principal.js"></script>
+</body>
+</html>

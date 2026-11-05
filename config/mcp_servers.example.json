@@ -1,0 +1,14 @@
+{
+  "_leia": "Copie para mcp_servers.json e ajuste. 'command' é uma LISTA: [executável, ...argumentos]. Cada chamada inicia o servidor e o encerra ao fim.",
+  "servers": {
+    "fetch": {
+      "command": ["uvx", "mcp-server-fetch"],
+      "env": {},
+      "timeout": 25
+    },
+    "arquivos": {
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "C:/Users/SEU_USUARIO/Documentos"],
+      "timeout": 25
+    }
+  }
+}
