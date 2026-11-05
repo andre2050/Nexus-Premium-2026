@@ -5,7 +5,7 @@ Mapa de todas as pastas e arquivos do projeto, como estão hoje na pasta.
 Base: MARK LV — JARVIS (© FatihMakes, CC BY-NC 4.0) — veja `LICENSE` e `NOTICE.md`.
 
 ```
-Nexus-Ultra-2026/
+Nexus-Premium-2026/
 ├── .gitignore                           # Mantém chave de API, memórias e dados pessoais fora do repositório
 ├── Abrir NEXUS (mostra erros).bat       # Abre o NEXUS e não fecha sozinho, para ler os erros
 ├── CHANGELOG.md                         # Histórico das mudanças por versão

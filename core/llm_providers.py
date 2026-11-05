@@ -349,7 +349,7 @@ class CerebroLLM:
         if self.chave:
             h["Authorization"] = f"Bearer {self.chave}"
         if self.provedor == "openrouter":
-            h["HTTP-Referer"] = "https://github.com/andre2050/Nexus-Ultra-2026"
+            h["HTTP-Referer"] = "https://github.com/andre2050/Nexus-Premium-2026"
             h["X-Title"] = "NEXUS Premium 2026"
         return h
 
