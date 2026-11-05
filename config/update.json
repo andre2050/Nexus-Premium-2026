@@ -1,6 +1,6 @@
 {
-    "_leia": "Repositório do NEXUS Ultra 2026 no GitHub (usuario/repositorio). Vazio = atualização desligada até você publicar o projeto e preencher aqui. O botão ATUALIZAR confere a última release e, sem release, a branch.",
-    "github_repo": "",
-    "asset_contains": "",
-    "branch": ""
+    "_leia": "Repositório do NEXUS Premium 2026 no GitHub (usuario/repositorio). O botão ATUALIZAR confere a última release (e o zip anexado a ela) e, sem release, a branch.",
+    "github_repo": "andre2050/Nexus-Premium-2026",
+    "asset_contains": "nexus-v",
+    "branch": "main"
 }
