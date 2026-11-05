@@ -130,7 +130,7 @@ class _Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         rota = urlparse(self.path).path
         if rota == "/ping":
-            return self._json({"ok": True, "nexus": "6.1.5"})
+            return self._json({"ok": True, "nexus": "6.1.6"})
         if rota == "/next":
             if not self._token_ok():
                 return self._json({"erro": "token inválido"}, 403)

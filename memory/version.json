@@ -1,8 +1,13 @@
 {
-  "version": "6.1.5",
+  "version": "6.1.6",
   "codename": "Nexus Premium 2026",
   "released": "2026-11-05",
   "changelog": [
+    {
+      "version": "6.1.6",
+      "date": "2026-11-05",
+      "notes": "Tempo de resposta: a espera de fim de fala caiu de 320 para 280 ms (o NEXUS começa a responder mais cedo) e o microfone volta a ouvir até 60 ms mais rápido depois que o NEXUS termina de falar (o fim da fala é conferido a cada 40 ms em vez de 100 ms). Quem pausa muito no meio da frase pode subir a espera com \"turn_tuning\": {\"silence_ms\": 400} no config/api_keys.json."
+    },
     {
       "version": "6.1.5",
       "date": "2026-11-05",

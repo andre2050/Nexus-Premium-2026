@@ -577,9 +577,12 @@ class AudioMixin:
         try:
             while True:
                 try:
+                    # 6.1.6: 0.1 -> 0.04 s. This timeout is also how quickly we
+                    # notice the reply has ENDED (and reopen the mic for you):
+                    # checking every 40 ms instead of 100 ms saves up to 60 ms.
                     chunk = await asyncio.wait_for(
                         self.audio_in_queue.get(),
-                        timeout=0.1
+                        timeout=0.04
                     )
                 except asyncio.TimeoutError:
                     if (

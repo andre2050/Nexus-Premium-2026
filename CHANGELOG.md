@@ -2,6 +2,14 @@
 
 O histórico completo das versões anteriores fica em `memory/version.json` (é o que o botão ⬆ ATUALIZAR mostra).
 
+## 6.1.6 — 05/11/2026 · tempo de resposta
+
+* Espera de fim de fala de **320 → 280 ms**: o NEXUS começa a responder mais cedo em toda fala.
+* O microfone volta a ouvir **até 60 ms mais rápido** depois que o NEXUS termina de falar (o fim da
+  resposta é conferido a cada 40 ms em vez de 100 ms) — dá para emendar a conversa sem esperar.
+* Se o NEXUS começar a cortar você no meio da frase, suba a espera com
+  `"turn_tuning": {"silence_ms": 400}` no config/api_keys.json.
+
 ## 6.1.5 — 05/11/2026 · WhatsApp e velocidade
 
 ### 💬 WhatsApp
