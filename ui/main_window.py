@@ -1116,12 +1116,8 @@ class MainWindow(QMainWindow):
 
         # Premium 2026: botão de CONFIGURAÇÃO do lado direito (Chave, Voz e Jeito,
         # Microfone e Som, Sobre você, Nomes, Núcleo, Cores)
-        self._cfg_dir_btn = HeaderIconButton("engrenagem2", 40)
-        self._cfg_dir_btn.setToolTip("Configuração: chave, voz e jeito, microfone e som, "
-                                     "sobre você, nomes, núcleo e cores")
-        self._cfg_dir_btn.clicked.connect(self._abrir_menu_config)
-        lay.addWidget(self._cfg_dir_btn, 0, Qt.AlignmentFlag.AlignVCenter)
-        lay.addSpacing(12)
+        # 6.1.3: o botão de configuração da direita saiu; as opções dele agora
+        # ficam na gaveta SETUP (o ⚙ da esquerda).
 
         right_col = QVBoxLayout(); right_col.setSpacing(2)
         self._clock_lbl = QLabel("00:00:00")
@@ -1336,28 +1332,14 @@ class MainWindow(QMainWindow):
 
         acoes = QHBoxLayout()
         acoes.setSpacing(6)
-        self._interrupt_btn = QPushButton()
-        self._interrupt_btn.setFixedHeight(32)
-        self._interrupt_btn.setFont(QFont(FONT_MAIN, 8, QFont.Weight.Bold))
-        self._interrupt_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        # 6.1.3: glass pills with an icon, LED and the key drawn like a keyboard key
+        from .modern import PillActionButton
+        self._interrupt_btn = PillActionButton()
         self._interrupt_btn.setToolTip("Faz o NEXUS parar de falar na hora")
-        self._interrupt_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {C.PANEL2}; color: {C.TEXT_MED};
-                border: 1px solid {C.BORDER}; border-radius: 16px;
-            }}
-            QPushButton:hover {{
-                color: {C.MUTED_C}; border: 1px solid {C.MUTED_C};
-            }}
-            QPushButton:pressed {{ background: #1c0e14; }}
-        """)
         self._interrupt_btn.clicked.connect(self._do_interrupt)
         acoes.addWidget(self._interrupt_btn, 1)
 
-        self._mute_btn = QPushButton()
-        self._mute_btn.setFixedHeight(32)
-        self._mute_btn.setFont(QFont(FONT_MAIN, 8, QFont.Weight.Bold))
-        self._mute_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._mute_btn = PillActionButton()
         self._mute_btn.clicked.connect(self._toggle_mute)
         acoes.addWidget(self._mute_btn, 1)
         lay.addLayout(acoes)
@@ -1410,6 +1392,23 @@ class MainWindow(QMainWindow):
         hdr.setStyleSheet(f"color: {C.PRI}; background: transparent; "
                           f"border-bottom: 1px solid {C.BORDER}; padding-bottom: 5px;")
         lay.addWidget(hdr)
+
+        # 6.1.3: o que ficava no botão de configuração da direita veio para cá
+        def _abrir(fn):
+            self._close_setup()
+            fn()
+        for icone, nome, fn in (
+            ("chave", "CHAVE (GEMINI)", self._show_setup),
+            ("fone", "VOZ E JEITO", self._open_customize),
+            ("mic", "MICROFONE E SOM", self._open_audio_devices),
+            ("pessoa", "SOBRE VOCÊ", self._open_memory_panel),
+            ("etiqueta", "NOMES", self._open_customize),
+            ("orb", "NÚCLEO", self._toggle_hud_style),
+            ("paleta", "CORES", self._open_customize),
+        ):
+            b = MenuButton(icone, nome, "normal")
+            b.clicked.connect(lambda _=False, f=fn: _abrir(f))
+            lay.addWidget(b)
 
         for tab, label in SettingsPanelOverlay.MENU_LABELS:
             # a Configuração do usuário é a entrada principal: em destaque
@@ -2473,7 +2472,6 @@ class MainWindow(QMainWindow):
             QMenu::item:disabled {{ color: {C.PRI}; font-weight: bold; }}
             QMenu::separator {{ height: 1px; background: {C.BORDER}; margin: 5px 8px; }}
         """)
-        menu.setIconSize(QSize(22, 22))
         titulo = QAction("NÚCLEOS · PREMIUM 2026", menu)
         titulo.setIcon(QIcon(icone_pixmap("orb", 22, aceso=True)))
         titulo.setEnabled(False)
@@ -3270,24 +3268,11 @@ class MainWindow(QMainWindow):
     def _style_mute_btn(self):
         tecla = QB.nome_da_tecla(QB.tecla("shortcut_mute"))
         if self._muted:
-            self._mute_btn.setText(f"🔇  Mudo  ·  {tecla}")
+            self._mute_btn.set_dados("mic_off", "Mudo", tecla, C.MUTED_C, aceso=True, led=True)
             self._mute_btn.setToolTip("O microfone está desligado. Clique para ligar.")
-            self._mute_btn.setStyleSheet(f"""
-                QPushButton {{
-                    background: transparent; color: {C.MUTED_C};
-                    border: 1px solid {C.MUTED_C}; border-radius: 16px;
-                }}
-            """)
         else:
-            self._mute_btn.setText(f"🎙  Ouvindo  ·  {tecla}")
+            self._mute_btn.set_dados("mic", "Ouvindo", tecla, C.GREEN, aceso=False, led=True)
             self._mute_btn.setToolTip("O microfone está ligado. Clique para silenciar.")
-            self._mute_btn.setStyleSheet(f"""
-                QPushButton {{
-                    background: {C.PANEL2}; color: {C.GREEN};
-                    border: 1px solid {C.BORDER}; border-radius: 16px;
-                }}
-                QPushButton:hover {{ border: 1px solid {C.GREEN}; }}
-            """)
 
     def _send(self):
         txt = self._input.text().strip()
@@ -3699,53 +3684,6 @@ class MainWindow(QMainWindow):
     def _acao_arquivo(self) -> None:
         self._drop_zone._browse()
 
-    def _abrir_menu_config(self) -> None:
-        from PyQt6.QtGui import QAction
-        from PyQt6.QtWidgets import QMenu
-        menu = QMenu(self)
-        from PyQt6.QtGui import QIcon
-        from .modern import icone_pixmap
-        # 6.1.3: menu de vidro com ícones desenhados (no lugar dos emojis)
-        menu.setStyleSheet(f"""
-            QMenu {{
-                color: {C.TEXT}; border: 1px solid {C.BORDER_B}; border-top: 2px solid {C.PRI_DIM};
-                border-radius: 14px; padding: 8px;
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 {C.PANEL2}, stop:0.2 {C.PANEL}, stop:1 {C.BG});
-            }}
-            QMenu::item {{ padding: 8px 26px 8px 10px; border-radius: 9px;
-                border: 1px solid transparent; margin: 1px 0; }}
-            QMenu::item:selected {{ color: {C.WHITE}; border: 1px solid {C.BORDER_B};
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(255,255,255,30), stop:0.5 {C.PRI_GHO}, stop:1 rgba(0,0,0,40)); }}
-            QMenu::item:disabled {{ color: {C.PRI}; font-weight: bold; }}
-            QMenu::icon {{ padding-left: 6px; }}
-            QMenu::separator {{ height: 1px; background: {C.BORDER}; margin: 5px 8px; }}
-        """)
-        menu.setIconSize(QSize(24, 24))
-        titulo = QAction("CONFIGURAÇÃO", menu)
-        titulo.setIcon(QIcon(icone_pixmap("engrenagem2", 24, aceso=True)))
-        titulo.setEnabled(False)
-        menu.addAction(titulo)
-        menu.addSeparator()
-        opcoes = (
-            ("chave", "Chave", "a chave do Gemini (API)", self._show_setup),
-            ("fone", "Voz e Jeito", "voz, tratamento e idioma", self._open_customize),
-            ("mic", "Microfone e Som", "qual microfone e qual saída de som", self._open_audio_devices),
-            ("pessoa", "Sobre você", "o que o NEXUS sabe sobre você", self._open_memory_panel),
-            ("etiqueta", "Nomes", "o nome do assistente e o seu", self._open_customize),
-            ("orb", "Núcleo", "o visual do centro (reator, hexágono, prisma…)", self._toggle_hud_style),
-            ("paleta", "Cores", "temas azuis e a cor da interface", self._open_customize),
-        )
-        for icone, nome, desc, fn in opcoes:
-            ac = QAction(f"{nome}      —  {desc}", menu)
-            ac.setIcon(QIcon(icone_pixmap(icone, 24)))
-            ac.triggered.connect(lambda _=False, f=fn: f())
-            menu.addAction(ac)
-        pos = self._cfg_dir_btn.mapToGlobal(QPoint(self._cfg_dir_btn.width(), self._cfg_dir_btn.height() + 4))
-        menu.adjustSize()
-        menu.exec(QPoint(pos.x() - menu.sizeHint().width(), pos.y()))
-
     def _install_shortcuts(self) -> None:
         for sc in getattr(self, "_shortcuts", []):
             sc.setEnabled(False)
@@ -3773,7 +3711,7 @@ class MainWindow(QMainWindow):
     def _refresh_shortcut_labels(self) -> None:
         k = lambda chave: QB.nome_da_tecla(QB.tecla(chave))
         if hasattr(self, "_interrupt_btn"):
-            self._interrupt_btn.setText(f"✋  Interromper  ·  {k('shortcut_interrupt')}")
+            self._interrupt_btn.set_dados("parar", "Interromper", k("shortcut_interrupt"), C.MUTED_C)
         if hasattr(self, "_mute_btn") and hasattr(self, "_muted"):
             self._style_mute_btn()
         if hasattr(self, "_fs_btn"):

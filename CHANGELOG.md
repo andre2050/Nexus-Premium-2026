@@ -14,6 +14,11 @@ O histórico completo das versões anteriores fica em `memory/version.json` (é 
 
 ### 🖥️ Layout
 * A **conversa voltou para a direita** e o painel do **sistema** fica à esquerda.
+* Saiu o botão de configuração do lado direito do topo. As opções dele (Chave, Voz e Jeito, Microfone e
+  Som, Sobre você, Nomes, Núcleo e Cores) agora ficam na gaveta **SETUP** (o ⚙ da esquerda).
+* Corrigido: o botão **Núcleo** não abria a lista de núcleos.
+* Botões **Interromper** e **Ouvindo/Mudo** da coluna da conversa em pílula de vidro, com ícone,
+  luz de estado e a tecla de atalho desenhada como tecla de verdade (Esc, F4).
 
 ### ✨ Botões mais realistas
 * Selo novo no topo: **NEXUS PREMIUM 2026** com a versão numa pastilha.

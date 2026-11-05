@@ -1130,6 +1130,13 @@ def _icone(p: QPainter, chave: str, cx: float, cy: float, r: float, cor: QColor,
         for y, x in ((-0.58, 0.30), (0.0, -0.40), (0.58, 0.10)):
             p.drawLine(P(-0.90, y), P(0.90, y))
             p.setBrush(cheio); p.drawEllipse(P(x, y), 0.20, 0.20); p.setBrush(Qt.BrushStyle.NoBrush)
+    elif chave == "mic_off":                              # microfone cortado (mudo)
+        cap = QPainterPath()
+        cap.addRoundedRect(QRectF(-0.28, -0.92, 0.56, 1.14), 0.28, 0.28)
+        p.drawPath(cap)
+        p.drawArc(QRectF(-0.62, -0.50, 1.24, 1.24), 180 * 16, 180 * 16)
+        p.drawLine(P(0, 0.74), P(0, 0.98))
+        p.drawLine(P(-0.88, -0.88), P(0.88, 0.88))
     elif chave == "chave":                                # chave de API
         p.drawEllipse(P(-0.46, -0.30), 0.38, 0.38)
         p.drawLine(P(-0.18, -0.02), P(0.86, 0.86))
@@ -1531,6 +1538,81 @@ def estilo_botao_vidro(cor: str | None = None, alinhado_esq: bool = True) -> str
         }}
         QPushButton:disabled {{ color: {C.TEXT_DIM}; }}
     """
+
+
+class PillActionButton(QPushButton):
+    """6.1.3 — the Interrupt and Listening buttons in the chat column: a glass
+    pill with an icon tile, name, status LED and the shortcut drawn as a key."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._ic, self._nome, self._tecla = "parar", "", ""
+        self._cor, self._aceso, self._led = C.PRI, False, False
+        self.setFixedHeight(40)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setMouseTracking(True)
+
+    def set_dados(self, icone: str, nome: str, tecla: str, cor: str,
+                  aceso: bool = False, led: bool = False) -> None:
+        self._ic, self._nome, self._tecla = icone, nome, tecla
+        self._cor, self._aceso, self._led = cor, aceso, led
+        self.setText(f"{nome} · {tecla}")      # for accessibility/tests
+        self.update()
+
+    def paintEvent(self, _):
+        p = QPainter(self)
+        if not p.isActive():
+            return
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+        W, H = self.width(), self.height()
+        hover, press = self.underMouse(), self.isDown()
+        cor = QColor(self._cor)
+        r = QRectF(1.5, 1.0, W - 3, H - 4)
+        pintar_vidro(p, r, r.height() / 2, cor, aceso=0.55 if self._aceso else 0.0,
+                     hover=hover, press=press)
+        dy = 1 if press else 0
+        # icon tile
+        chip = QRectF(r.left() + 5, r.top() + (r.height() - 26) / 2 + dy, 26, 26)
+        pintar_chip_icone(p, chip, self._ic, cor, aceso=self._aceso or hover, escala=0.32)
+        # shortcut key, drawn like a keyboard key
+        x_fim = r.right() - 8
+        if self._tecla:
+            p.setFont(_font(6.8, QFont.Weight.Bold, 0.4))
+            fm = p.fontMetrics()
+            kw = max(22.0, fm.horizontalAdvance(self._tecla) + 12.0)
+            k = QRectF(x_fim - kw, r.center().y() - 9 + dy, kw, 18)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(QColor(0, 0, 0, 110))
+            p.drawRoundedRect(k.translated(0, 1.6), 4, 4)        # key depth
+            kg = QLinearGradient(k.topLeft(), k.bottomLeft())
+            kg.setColorAt(0.0, _lerp(qcol(C.PANEL2), QColor("#ffffff"), 0.22))
+            kg.setColorAt(1.0, qcol(C.PANEL2))
+            p.setBrush(QBrush(kg))
+            p.setPen(QPen(QColor(255, 255, 255, 70), 1))
+            p.drawRoundedRect(k, 4, 4)
+            p.setPen(QPen(qcol(C.WHITE), 1))
+            p.drawText(k, Qt.AlignmentFlag.AlignCenter, self._tecla)
+            x_fim = k.left() - 6
+        # LED
+        if self._led:
+            led = QPointF(x_fim - 4, r.center().y() + dy)
+            halo = QRadialGradient(led, 7)
+            c0 = QColor(cor); c0.setAlpha(150)
+            c1 = QColor(cor); c1.setAlpha(0)
+            halo.setColorAt(0.0, c0); halo.setColorAt(1.0, c1)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(QBrush(halo)); p.drawEllipse(led, 7, 7)
+            p.setBrush(QBrush(cor)); p.drawEllipse(led, 3, 3)
+            x_fim -= 14
+        # name
+        p.setPen(QPen(qcol(C.WHITE) if (hover or self._aceso) else _lerp(cor, QColor("#ffffff"), 0.35), 1))
+        p.setFont(_font(8.2, QFont.Weight.Bold, 0.4))
+        fm = p.fontMetrics()
+        caixa = QRectF(chip.right() + 8, r.top() + dy, max(10.0, x_fim - chip.right() - 10), r.height())
+        p.drawText(caixa, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter,
+                   fm.elidedText(self._nome, Qt.TextElideMode.ElideRight, int(caixa.width())))
+        p.end()
 
 
 class HeaderIconButton(QPushButton):
