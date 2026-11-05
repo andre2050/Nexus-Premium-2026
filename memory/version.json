@@ -1,8 +1,13 @@
 {
-  "version": "6.1.3",
+  "version": "6.1.4",
   "codename": "Nexus Premium 2026",
   "released": "2026-11-05",
   "changelog": [
+    {
+      "version": "6.1.4",
+      "date": "2026-11-05",
+      "notes": "Versão corrigida, com todas as melhorias da 6.1.3. O botão ATUALIZAR agora procura as versões novas no GitHub (andre2050/Nexus-Premium-2026) e baixa o zip da release sozinho. Corrigido o botão Núcleo, que não abria a lista de núcleos. O botão de configuração da direita saiu: Chave, Voz e Jeito, Microfone e Som, Sobre você, Nomes, Núcleo e Cores ficam na gaveta SETUP. Botões Interromper (Esc) e Ouvindo/Mudo (F4) em pílula de vidro com ícone, luz e a tecla desenhada."
+    },
     {
       "version": "6.1.3",
       "date": "2026-11-05",

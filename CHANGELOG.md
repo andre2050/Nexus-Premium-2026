@@ -2,6 +2,20 @@
 
 O histórico completo das versões anteriores fica em `memory/version.json` (é o que o botão ⬆ ATUALIZAR mostra).
 
+## 6.1.4 — 05/11/2026 · versão corrigida
+
+Traz tudo da 6.1.3 (abaixo) e mais:
+
+### ⬆ Atualização pelo GitHub
+* O botão **ATUALIZAR** agora procura as versões novas no repositório
+  **andre2050/Nexus-Premium-2026** e baixa o zip da release sozinho. Antes o endereço estava vazio e
+  o botão nunca achava nada.
+
+### 🛠 Correções
+* O botão **Núcleo** voltou a abrir a lista dos 10 núcleos Premium 2026.
+* O botão de configuração do lado direito saiu; as opções dele ficam na gaveta **SETUP** (⚙ da esquerda).
+* **Interromper · Esc** e **Ouvindo · F4** em pílula de vidro, com ícone, luz de estado e a tecla desenhada.
+
 ## 6.1.3 — 05/11/2026 · versão corrigida
 
 ### 💬 WhatsApp (correção)
