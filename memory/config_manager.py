@@ -197,7 +197,10 @@ def get_turn_tuning() -> dict:
 
     return {
         "enabled":    bool(cfg.get("enabled", True)),     # 2.3: ligado — responde mais rápido
-        "silence_ms": _int("silence_ms", 450, 200, 3000),
+        # 6.1.5: 450 -> 320 ms. It's the pause NEXUS waits through before
+        # answering: 130 ms less on EVERY reply. Whoever pauses a lot in the
+        # middle of a sentence can raise it with "turn_tuning": {"silence_ms": 450}.
+        "silence_ms": _int("silence_ms", 320, 200, 3000),
         "prefix_ms":  _int("prefix_ms", 150, 0, 1000),
         # "high" = quicker to decide speech has ended.
         "end_sensitivity":   str(cfg.get("end_sensitivity", "high")).lower(),

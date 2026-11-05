@@ -1,8 +1,13 @@
 {
-  "version": "6.1.4",
+  "version": "6.1.5",
   "codename": "Nexus Premium 2026",
   "released": "2026-11-05",
   "changelog": [
+    {
+      "version": "6.1.5",
+      "date": "2026-11-05",
+      "notes": "WhatsApp: a agenda completa chega (a ponte busca os contatos de novo 15 s e 60 s depois de conectar; antes vinham só 5), a busca acha nomes pelo som (Kaique = Kaik, Tiago = Thiago), nome não encontrado faz a ponte atualizar a agenda e procurar de novo, a confirmação diz o nome ou o número e nunca mais 'Você', e número dito depois de um nome não encontrado vira apelido aprendido (um erro de transcrição não prende o nome no número errado). Velocidade: alto-falante em baixa latência (~85 ms a menos por resposta) e espera de fim de fala de 450 para 320 ms (~130 ms a menos); o tempo de cada resposta fica em memory/latencia.csv."
+    },
     {
       "version": "6.1.4",
       "date": "2026-11-05",

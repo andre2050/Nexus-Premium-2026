@@ -255,6 +255,7 @@ let mediaDownloadActive = new Set();
 let freshLoginRequired = false;
 let manualLogoutInProgress = false;
 let contactSyncInFlight = false;
+let ultimaAgendaSob = 0;   // 6.1.5: last on-demand address book fetch
 let ultimoErro = '';
 let ultimoErroEm = '';
 let dbBloqueado = false;
@@ -332,6 +333,7 @@ function loadDb() {
       agentSeen = d.agentSeen || {};
       pendingLeaveGroup = d.pendingLeaveGroup || pendingLeaveGroup;
       podarFilas();
+      limparNomesVoce();   // 6.1.5: chats wrongly named "Você"
     }
   } catch (e) { log('loadDb error', e.message); }
 }
@@ -521,6 +523,23 @@ function similarity(a, b) {
   const maxLen = Math.max(a.length, b.length);
   return maxLen ? (1 - editDistance(a, b) / maxLen) : 0;
 }
+// 6.1.5: how a Brazilian name SOUNDS. Voice transcription writes "Kaique"
+// for "Kaik", "Tiago" for "Thiago", "Luis" for "Luiz", "Erica" for "Érika"...
+// Same sound => same key.
+function foneticoPt(palavra) {
+  let s = normalizeText(palavra).replace(/\s+/g, '');
+  if (!s) return '';
+  s = s.replace(/ph/g, 'f').replace(/th/g, 't').replace(/sch/g, 'x').replace(/sh/g, 'x')
+       .replace(/ch/g, 'x').replace(/lh/g, 'li').replace(/nh/g, 'ni')
+       .replace(/qu(?=[ei])/g, 'k').replace(/gu(?=[ei])/g, 'g').replace(/q/g, 'k')
+       .replace(/c(?=[ei])/g, 's').replace(/c/g, 'k').replace(/ck/g, 'k')
+       .replace(/y/g, 'i').replace(/w/g, 'v').replace(/z$/g, 's').replace(/ss/g, 's')
+       .replace(/(?<![a-z])h/g, '').replace(/h/g, '')
+       .replace(/(.)\1+/g, '$1');
+  // the unstressed final vowel almost disappears in speech: "kaike" ~ "kaik"
+  if (s.length > 3) s = s.replace(/[eo]$/, '');
+  return s;
+}
 function fuzzyNameScore(name, query) {
   const norm = normalizeText(name);
   const target = normalizeText(query);
@@ -531,6 +550,11 @@ function fuzzyNameScore(name, query) {
   if (norm.startsWith(target) || cn.startsWith(ct)) return 120;
   if (norm.includes(target) || cn.includes(ct)) return 105;
   if (target.includes(norm) && norm.length >= 4) return 90;
+  // 6.1.5: same SOUND as the full name or as one of its words ("Kaique" -> "Kaik Frederich")
+  const fq = target.split(/\s+/).filter(Boolean).map(foneticoPt).filter(x => x.length >= 3);
+  const fn = norm.split(/\s+/).filter(Boolean).map(foneticoPt);
+  if (fq.length && fq.join('') === fn.join('')) return 130;
+  if (fq.length && fq.every(t => fn.includes(t))) return fq.length === fn.length ? 125 : 104;
   const simFull = similarity(norm, target);
   let score = simFull >= 0.72 ? Math.round(75 + simFull * 25) : 0;
   const nameTokens = norm.split(/\s+/).filter(Boolean);
@@ -638,7 +662,44 @@ function aliasFromMessageHistory(name) {
   }
   return null;
 }
-function displayName(obj, fallback = '') { return obj?.name || obj?.notify || obj?.verifiedName || obj?.subject || obj?.shortName || obj?.pushName || fallback; }
+// 6.1.5: "Você" is the label of OUR sent messages, never a chat/contact name.
+// It used to stick to the chat after the first send, and the result said
+// "sent to Você" even though the message went to the right person.
+function nomeValido(v) { const s = String(v || '').trim(); return s && s !== 'Você' ? s : ''; }
+function displayName(obj, fallback = '') {
+  for (const v of [obj?.name, obj?.notify, obj?.verifiedName, obj?.subject, obj?.shortName, obj?.pushName]) {
+    const s = nomeValido(v);
+    if (s) return s;
+  }
+  return fallback;
+}
+// 6.1.5: who the message went to, in a form a person can read: the name,
+// or the formatted number (+55 14 99149-5373) — never "Você" or "...@s.whatsapp.net".
+function nomeDoDestino(jid, pedido = '') {
+  const nome = friendlyNameForJid(jid);
+  if (nomeValido(nome) && !String(nome).includes('@')) return nome;
+  const d = String(jid || '').split('@')[0].replace(/\D/g, '');
+  if (String(jid || '').endsWith('@s.whatsapp.net') && d.startsWith('55') && d.length >= 12) {
+    const ddd = d.slice(2, 4), resto = d.slice(4);
+    return `+55 ${ddd} ${resto.slice(0, resto.length - 4)}-${resto.slice(-4)}`;
+  }
+  return String(pedido || '').trim() || d || 'o contato';
+}
+function limparNomesVoce() {
+  let n = 0;
+  for (const mapa of [chats, contacts]) {
+    for (const [jid, c] of Object.entries(mapa || {})) {
+      for (const campo of ['name', 'notify', 'pushName']) {
+        if (c && String(c[campo] || '').trim() === 'Você') { delete c[campo]; n++; }
+      }
+    }
+  }
+  for (const m of (messages || [])) {
+    if (m && !m.is_group && String(m.chat_name || '').trim() === 'Você') { m.chat_name = m.jid; n++; }
+  }
+  if (n) log('cleaned "Você" names', n);
+  return n;
+}
 function friendlyNameForJid(jid) { return displayName(contacts[jid] || chats[jid] || groups[jid] || {}, jid); }
 function shortJid(jid) {
   const raw = String(jid || '').split('@')[0] || '';
@@ -1187,7 +1248,8 @@ function rememberMessage(m) {
     const isGroup = String(jid || '').endsWith('@g.us');
     const currentChatName = friendlyNameForJid(jid);
     const rawChatName = currentChatName && !String(currentChatName).includes('@') ? currentChatName : jid;
-    const chatName = isGroup ? rawChatName : (rawChatName && !String(rawChatName).includes('@') ? rawChatName : (m.pushName || friendlyNameForJid(senderJid) || jid));
+    // 6.1.5: a message WE sent carries our pushName ("Você"): it never names the chat.
+    const chatName = isGroup ? rawChatName : (rawChatName && !String(rawChatName).includes('@') ? rawChatName : ((fromMe ? '' : nomeValido(m.pushName)) || jid));
     const savedContactName = contacts[senderJid]?.name_source === 'address_book' ? contacts[senderJid]?.name : '';
     const personName = fromMe ? 'Você' : (isGroup ? chooseGroupSenderName(m, senderJid, chatName) : (savedContactName || m.pushName || friendlyNameForJid(senderJid) || chatName || senderJid));
     const item = { id: m.key?.id, jid, sender_jid: senderJid, from_me: fromMe, name: personName, chat_name: chatName, is_group: isGroup, chat_type: isGroup ? 'group' : 'private', text: describeMessage(m), type: messageType(m), timestamp: Number(m.messageTimestamp || Math.floor(Date.now()/1000)), key: m.key };
@@ -1212,7 +1274,9 @@ function rememberMessage(m) {
     }
     messages.push(item);
     if (mediaInfoFromMessage(m)) saveIncomingMedia(m, item).catch(()=>{});
-    if (jid.endsWith('@g.us')) rememberGroup(jid, { subject: chatName, name: chatName }); else rememberChat(jid, { name: chatName, notify: personName, pushName: personName });
+    if (jid.endsWith('@g.us')) rememberGroup(jid, { subject: chatName, name: chatName });
+    else if (fromMe) { if (nomeValido(chatName) && !String(chatName).includes('@')) rememberChat(jid, { name: chatName }); else rememberChat(jid, {}); }
+    else rememberChat(jid, { name: chatName, notify: personName, pushName: personName });
     if (!fromMe) rememberContact(senderJid, { notify: personName, pushName: personName }, { source: 'message' });
     if (!fromMe && jidAlt) ligarPnLid(jidAlt, senderJid);
     // Aprender nome automaticamente apenas em conversa privada. Participantes
@@ -1338,10 +1402,18 @@ async function resolveJid(to) {
   // automaticamente participa do ranking atualizado da agenda.
   if (alias && alias.jid && alias.auto !== true) return alias.jid;
   if (raw.includes('@s.whatsapp.net') || raw.includes('@g.us') || raw.includes('@lid')) return raw;
-  const found = searchContacts(raw, 5);
+  let found = searchContacts(raw, 5);
   if (found.length) return found[0].jid;
   const histAlias = aliasFromMessageHistory(raw);
   if (histAlias && histAlias.jid) return histAlias.jid;
+  // 6.1.5: a name (not a number) that isn't known yet: fetch the address book
+  // again (the first sync can run before the phone sends the keys) and retry.
+  if (digitsOnly(raw).length < 8 && Date.now() - ultimaAgendaSob > 60000) {
+    ultimaAgendaSob = Date.now();
+    try { await refreshAddressBook(8000); } catch (_) {}
+    found = searchContacts(raw, 5);
+    if (found.length) return found[0].jid;
+  }
   const num = normalizeBrazilNumber(raw);
   if (num.length >= 11) {
     let jid = `${num}@s.whatsapp.net`;
@@ -1352,7 +1424,15 @@ async function resolveJid(to) {
       }
     } catch (e) { log('onWhatsApp failed/timeout', e.message); }
     if (lastFailedName) {
-      try { saveAlias(lastFailedName, jid); log('auto alias saved after number', lastFailedName, jid); lastFailedName = ''; } catch(e) { log('auto alias failed', e.message); }
+      // 6.1.5: LEARNED alias, not a fixed one. The number usually comes by
+      // voice and the transcription loses digits ("14 9..." became "49...");
+      // a fixed alias would lock the name onto the wrong number forever.
+      try {
+        aliases[aliasKey(lastFailedName)] = { name: lastFailedName, jid, auto: true, source: 'after_number', updated_at: new Date().toISOString() };
+        saveDb();
+        log('learned alias after number', lastFailedName, jid);
+        lastFailedName = '';
+      } catch(e) { log('auto alias failed', e.message); }
     }
     return jid;
   }
@@ -1864,6 +1944,11 @@ async function start({ fresh = false } = {}) {
         log('Connected.');
         refreshGroups(6000).catch(e => log('background groups failed', e.message));
         refreshAddressBook(20000).catch(e => log('background address book failed', e.message));
+        // 6.1.5: right after connecting the phone hasn't sent the keys to read
+        // the address book yet (only 5 contacts came in). Try again a bit later.
+        for (const ms of [15000, 60000]) {
+          setTimeout(() => { if (currentConnected()) refreshAddressBook(20000).then(() => log('address book retry', ms / 1000 + 's', 'contacts', contactCount())).catch(() => {}); }, ms);
+        }
       }
       if (connection === 'close') {
         clearQrWatchdog();
@@ -2302,19 +2387,19 @@ app.post('/send', async (req, res) => {
       const payload = { audio: { url: opus }, mimetype: 'audio/ogg; codecs=opus', ptt: true };
       await esperarConexaoParaEnvio();
       sent = await sendAndRegister(jid, payload, 30000, 'send audio', message || '[áudio]');
-      result = `Áudio/voz enviado para ${friendlyNameForJid(jid) || to} e registrado no histórico do WhatsApp.`;
+      result = `Áudio/voz enviado para ${nomeDoDestino(jid, to)} e registrado no histórico do WhatsApp.`;
     } else if (type === 'file' || type === 'media' || type === 'image' || type === 'video' || type === 'document') {
       const filePath = req.body.file_path || req.body.path;
       const caption = String(req.body.caption || message || '');
       const payload = mediaPayload(filePath, caption);
       await esperarConexaoParaEnvio();
       sent = await sendAndRegister(jid, payload, 120000, 'send file', caption || path.basename(String(filePath || 'arquivo')));
-      result = `Arquivo enviado para ${friendlyNameForJid(jid) || to} e registrado no histórico do WhatsApp.`;
+      result = `Arquivo enviado para ${nomeDoDestino(jid, to)} e registrado no histórico do WhatsApp.`;
     } else {
       if (!message) throw new Error('Message text is empty.');
       await esperarConexaoParaEnvio();
       sent = await sendAndRegister(jid, { text: message }, 45000, 'send text', message);
-      result = `Texto enviado para ${friendlyNameForJid(jid) || to} e registrado no histórico do WhatsApp.`;
+      result = `Texto enviado para ${nomeDoDestino(jid, to)} e registrado no histórico do WhatsApp.`;
     }
     const id = String(sent?.key?.id || '');
     log('send ok', jid, id, `${Date.now() - t0}ms`);

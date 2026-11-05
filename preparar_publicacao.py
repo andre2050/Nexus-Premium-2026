@@ -46,6 +46,7 @@ EXCLUDE = [
     # 2.3 — voz, rostos, métricas, quedas e modelos
     "memory/voz_dono.*", "memory/wake_nexus.npz", "memory/indice_semantico.npz", "memory/reconexoes.log",
     "memory/falhas.log", "memory/queda_nativa.log", "memory/sessao.json", "memory/metricas.csv", "memory/anomalia.json",
+    "memory/latencia.csv",   # 6.1.5 — response time on this PC
     "memory/previsao_habitos.json", "memory/rostos.npz", "memory/modelos/*", "memory/cerebro_local/*",
     "uploads/*", ".ruff_cache/*", ".pytest_cache/*", "*.log.*",
     "memory/organizacao_desktop*.json",   # 1.4.2 — onde estavam os arquivos da sua área de trabalho
@@ -70,6 +71,8 @@ EXCLUDE = [
     "whatsapp_bridge/node_modules/*", "whatsapp_bridge/auth/*", "whatsapp_bridge/media/*",
     "whatsapp_bridge/outgoing_zips/*", "whatsapp_bridge/status.json", "whatsapp_bridge/wa_qr.png",
     "whatsapp_bridge/qr.txt", "whatsapp_bridge/mark_xlviii_whatsapp_db.json*",
+    # 6.1.5 — state of THIS PC's bridge (last disconnect, scheduled messages)
+    "whatsapp_bridge/last_disconnect.json", "whatsapp_bridge/mark_xlviii_pending_schedule.json",
     # 6.1.0 — pesados ou sobras da cópia do JARVIS que o NEXUS não usa
     "runtime/*", "models/*", "cache/*", "desktop/*",
     "ui.py", "gemini_voice.py", "personas.py", "voz_local.py", "modo_economico.py",

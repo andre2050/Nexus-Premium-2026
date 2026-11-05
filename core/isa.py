@@ -193,6 +193,18 @@ def registrar_latencia(ms: float) -> None:
     if 0 < ms < 60_000:
         with _trava:
             _latencias.append(ms)
+        # 6.1.5: also saved to a file, to compare response time between
+        # versions (memory/latencia.csv: date/time, milliseconds).
+        try:
+            from pathlib import Path as _Path
+            arq = _Path(__file__).resolve().parent.parent / "memory" / "latencia.csv"
+            novo = not arq.exists()
+            with open(arq, "a", encoding="utf-8") as f:
+                if novo:
+                    f.write("quando,ms\n")
+                f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')},{ms:.0f}\n")
+        except Exception:
+            pass
 
 
 def em_andamento() -> int:

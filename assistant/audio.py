@@ -531,13 +531,21 @@ class AudioMixin:
             print(f"[NEXUS] 🔊 Output device: {_spk_name}")
 
         def _open_spk(dev):
-            st = sd.RawOutputStream(
-                samplerate=RECEIVE_SAMPLE_RATE,
-                channels=CHANNELS,
-                dtype="int16",
-                blocksize=CHUNK_SIZE,
-                device=dev,
-            )
+            # 6.1.5: LOW latency. With no latency given, Windows (MME) opens the
+            # output with its "high" buffer — measured at 213 ms vs 128 ms on
+            # "low" — and every reply waited in that buffer before reaching the
+            # speaker. If a device refuses "low", fall back to the driver default.
+            try:
+                st = sd.RawOutputStream(
+                    samplerate=RECEIVE_SAMPLE_RATE, channels=CHANNELS, dtype="int16",
+                    blocksize=CHUNK_SIZE, device=dev, latency="low",
+                )
+            except Exception as _e_low:
+                print(f"[NEXUS] 🔊 low latency refused ({_e_low}) — using the default")
+                st = sd.RawOutputStream(
+                    samplerate=RECEIVE_SAMPLE_RATE, channels=CHANNELS, dtype="int16",
+                    blocksize=CHUNK_SIZE, device=dev,
+                )
             st.start()
             return st
 

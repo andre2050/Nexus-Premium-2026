@@ -2,6 +2,23 @@
 
 O histórico completo das versões anteriores fica em `memory/version.json` (é o que o botão ⬆ ATUALIZAR mostra).
 
+## 6.1.5 — 05/11/2026 · WhatsApp e velocidade
+
+### 💬 WhatsApp
+* **Agenda completa:** a ponte busca os contatos de novo 15 s e 60 s depois de conectar (na primeira vez
+  o celular ainda não tinha mandado as chaves e só vinham 5 contatos — agora vêm todos).
+* **Busca pelo som do nome:** "Kaique" acha "Kaik", "Tiago" acha "Thiago", "Luis" acha "Luiz".
+* Nome não encontrado: a ponte atualiza a agenda e procura de novo antes de desistir.
+* A confirmação diz o nome do contato ou o número (+55 14 99149-5373), nunca mais "Você".
+* Número dito logo depois de um nome não encontrado vira apelido **aprendido**, não fixo: um erro de
+  transcrição não prende mais o nome no número errado.
+
+### ⚡ Resposta mais rápida
+* Alto-falante em **baixa latência**: ~85 ms a menos em cada resposta (213 → 128 ms neste PC).
+* Espera de fim de fala de **450 → 320 ms**: o NEXUS responde ~130 ms mais cedo. Quem pausa muito no
+  meio da frase pode voltar com `"turn_tuning": {"silence_ms": 450}` no config/api_keys.json.
+* O tempo de resposta de cada fala é guardado em `memory/latencia.csv` (fica só no seu PC).
+
 ## 6.1.4 — 05/11/2026 · versão corrigida
 
 Traz tudo da 6.1.3 (abaixo) e mais:
