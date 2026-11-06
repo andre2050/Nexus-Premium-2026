@@ -2,6 +2,21 @@
 
 O histórico completo das versões anteriores fica em `memory/version.json` (é o que o botão ⬆ ATUALIZAR mostra).
 
+## 6.1.9 — 06/11/2026 · cronômetro e resposta mais rápida
+
+### ⏱ Cronômetro no mostrador
+* Enquanto fala: **● FALANDO 0:02**, contando os segundos.
+* Enquanto pensa ou usa uma ferramenta: **◇ PENSANDO 1,3 s**.
+* Nos primeiros segundos de cada resposta: **"respondeu em 0,61 s"** — do fim da sua fala até a
+  voz do NEXUS.
+
+### ⚡ Resposta mais rápida
+* Espera de fim de fala de **280 → 250 ms**: o NEXUS começa a responder mais cedo em toda fala.
+* O som da resposta começa a tocar **antes** da análise da onda (a animação é calculada enquanto o
+  áudio já sai) — antes, cada trecho, inclusive a primeira palavra, esperava esse cálculo.
+* Se o NEXUS começar a cortar você no meio da frase, suba a espera com
+  `"turn_tuning": {"silence_ms": 300}` no config/api_keys.json.
+
 ## 6.1.8 — 06/11/2026 · botões neon
 
 * **Barra de ações neon:** vidro escuro com reflexo diagonal, contorno em tubo de neon brilhando e

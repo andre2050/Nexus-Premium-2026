@@ -606,6 +606,11 @@ class AudioMixin:
                     except asyncio.QueueEmpty:
                         break
 
+                # 6.1.9: the write to the speaker starts FIRST, in its thread, and
+                # the waveform/echo analysis below runs while it plays — before,
+                # every batch (the first word included) waited for the numpy work.
+                _escrita = asyncio.ensure_future(asyncio.to_thread(stream.write, bytes(batch)))
+
                 # Drive the HUD waveform and the avatar's mouth from NEXUS's
                 # own voice. The batch is up to 200 ms long, so we hand over a
                 # *schedule* of 20 ms viseme frames instead of a single averaged
@@ -656,7 +661,7 @@ class AudioMixin:
                     pass
 
                 try:
-                    await asyncio.to_thread(stream.write, bytes(batch))
+                    await _escrita
                 except (RuntimeError, asyncio.CancelledError):
                     break   # executor shutting down — exit cleanly
         except Exception as e:

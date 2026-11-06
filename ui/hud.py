@@ -128,6 +128,10 @@ class HudCanvas(QWidget):
         self._luz_mod = [0.0] * 6   # brilho (0–1) de cada módulo do visual Hub; decai sozinho
         self._luz_nucleo = 0.0
         self._chuva: list[list[float]] = []        # visual Matrix: [x, y, velocidade, tamanho] de cada fio
+        self._t_fala: float | None = None          # 6.1.9: início da fala atual (cronômetro)
+        self._t_pensa: float | None = None         # 6.1.9: início do "pensando"
+        self._latencia_txt = ""
+        self._latencia_ate = 0.0
 
         self._tmr = QTimer(self)
         self._tmr.timeout.connect(self._step)
@@ -350,15 +354,33 @@ class HudCanvas(QWidget):
             except Exception:
                 pass
 
+        # 6.1.9 — cronômetro: há quanto tempo está falando / pensando
+        agora_ = time.monotonic()
+        if self.speaking:
+            if self._t_fala is None:
+                self._t_fala = agora_
+                self._latencia_txt = self._ler_latencia()
+                self._latencia_ate = agora_ + 4.0
+        else:
+            self._t_fala = None
+        if self.state in ("THINKING", "PROCESSING") and not self.speaking:
+            if self._t_pensa is None:
+                self._t_pensa = agora_
+        else:
+            self._t_pensa = None
+
         # texto de estado
         if self.muted:
             txt, col = "⊘  MUDO", qcol(C.MUTED_C)
         elif self.speaking:
-            txt, col = "●  FALANDO", acc
+            seg = int(agora_ - self._t_fala)
+            txt, col = f"●  FALANDO  {seg // 60}:{seg % 60:02d}", acc
         elif self.state == "THINKING":
-            txt, col = f"{'◈' if self._blink else '◇'}  PENSANDO", acc
+            txt, col = (f"{'◈' if self._blink else '◇'}  PENSANDO  "
+                        f"{self._fmt_seg(agora_ - self._t_pensa)}"), acc
         elif self.state == "PROCESSING":
-            txt, col = f"{'▷' if self._blink else '▶'}  PROCESSANDO", acc
+            txt, col = (f"{'▷' if self._blink else '▶'}  PROCESSANDO  "
+                        f"{self._fmt_seg(agora_ - self._t_pensa)}"), acc
         elif self.state == "LISTENING":
             txt, col = f"{'●' if self._blink else '○'}  OUVINDO", acc
         else:
@@ -368,7 +390,33 @@ class HudCanvas(QWidget):
         p.setFont(f)
         p.setPen(QPen(col, 1))
         p.drawText(QRectF(0, base_y, W, 28), Qt.AlignmentFlag.AlignCenter, txt)
+        # logo que começa a falar: quanto tempo levou para responder
+        if self.speaking and self._latencia_txt and agora_ < self._latencia_ate:
+            f2 = QFont(FONT_MAIN, 8)
+            f2.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1.0)
+            p.setFont(f2)
+            p.setPen(QPen(self._rgba(col, 170), 1))
+            p.drawText(QRectF(0, base_y + 24, W, 18), Qt.AlignmentFlag.AlignCenter,
+                       f"respondeu em {self._latencia_txt}")
         p.end()
+
+    @staticmethod
+    def _fmt_seg(s: float) -> str:
+        s = max(0.0, s)
+        return f"{s:.1f} s".replace(".", ",") if s < 60 else f"{int(s) // 60}:{int(s) % 60:02d}"
+
+    @staticmethod
+    def _ler_latencia() -> str:
+        """O tempo da última resposta (fim da sua fala → voz do NEXUS), de core/isa."""
+        try:
+            from core import isa as _isa
+            with _isa._trava:
+                ult = _isa._latencias[-1] if _isa._latencias else None
+            if ult is None:
+                return ""
+            return f"{ult / 1000:.2f} s".replace(".", ",")
+        except Exception:
+            return ""
 
     def _orbe(self, p: QPainter, cx: float, cy: float, R: float,
               main: QColor, acc: QColor, amp: float) -> None:

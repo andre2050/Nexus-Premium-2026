@@ -1,8 +1,13 @@
 {
-  "version": "6.1.8",
+  "version": "6.1.9",
   "codename": "Nexus Premium 2026",
   "released": "2026-11-06",
   "changelog": [
+    {
+      "version": "6.1.9",
+      "date": "2026-11-06",
+      "notes": "Cronômetro e resposta mais rápida: o mostrador conta os segundos enquanto o NEXUS fala (FALANDO 0:02) e enquanto pensa ou usa uma ferramenta (PENSANDO 1,3 s), e logo que ele começa a responder mostra quanto tempo levou (\"respondeu em 0,61 s\"). A espera de fim de fala caiu de 280 para 250 ms e o som da resposta começa a tocar antes da análise da onda (a animação é calculada enquanto o áudio já sai). Quem pausa muito no meio da frase pode subir a espera com \"turn_tuning\": {\"silence_ms\": 300} no config/api_keys.json."
+    },
     {
       "version": "6.1.8",
       "date": "2026-11-06",
