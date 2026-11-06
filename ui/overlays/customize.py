@@ -453,6 +453,8 @@ class CustomizeOverlay(QWidget):
         _grupo("FONTE DO TEXTO  (vale ao reabrir o NEXUS)", "visual_fonte",
                (("moderna", "MODERNA"), ("classica", "CLÁSSICA")), "moderna",
                lambda v: V.notificar("Fonte do texto", "A fonte nova aparece quando o NEXUS for reaberto."))
+        _grupo("ESTILO DOS BOTÕES", "visual_botoes",
+               (("neon", "NEON COLORIDO"), ("neon_tema", "NEON DO TEMA"), ("vidro", "VIDRO")), "neon")
         _grupo("ÍCONES", "visual_icones",
                (("finas", "LINHAS FINAS"), ("normal", "NORMAL"), ("3d", "3D")), "finas")
         _grupo("POSIÇÃO DOS PAINÉIS  (arraste as bordas para mudar a largura)", "visual_paineis",

@@ -76,6 +76,7 @@ DEFAULTS = {
     "visual_efeitos": True,        # brilho nos botões, sombra nos títulos e transições suaves
     "visual_cursor": True,         # cursor do mouse com a cor do tema dentro da janela
     "visual_icones": "finas",      # finas | normal | 3d
+    "visual_botoes": "neon",       # neon (cada botão numa cor) | neon_tema (cor do tema) | vidro
     "visual_paineis": "padrao",    # padrao (sistema à esquerda) | invertido (conversa à esquerda)
     "visual_larguras": [],         # larguras dos painéis arrastadas pelo usuário
 }

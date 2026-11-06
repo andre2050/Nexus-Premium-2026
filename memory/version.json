@@ -1,8 +1,13 @@
 {
-  "version": "6.1.7",
+  "version": "6.1.8",
   "codename": "Nexus Premium 2026",
   "released": "2026-11-06",
   "changelog": [
+    {
+      "version": "6.1.8",
+      "date": "2026-11-06",
+      "notes": "Botões neon: a barra de ações ganhou ladrilhos de vidro escuro com contorno de neon brilhando e ícones em linha de neon com halo, cada botão numa cor (ligado fica mais aceso, com um ponto no canto; o mouse por cima aumenta o brilho). Os botões redondos do topo, o menu e os botões Interromper e Ouvindo (com as teclas Esc/F4) também ficaram neon. Em Configuração do usuário > VISUAL 2026 > ESTILO DOS BOTÕES: Neon colorido, Neon do tema ou Vidro (o visual anterior)."
+    },
     {
       "version": "6.1.7",
       "date": "2026-11-06",

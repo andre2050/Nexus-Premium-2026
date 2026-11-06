@@ -2,6 +2,18 @@
 
 O histórico completo das versões anteriores fica em `memory/version.json` (é o que o botão ⬆ ATUALIZAR mostra).
 
+## 6.1.8 — 06/11/2026 · botões neon
+
+* **Barra de ações neon:** vidro escuro com reflexo diagonal, contorno em tubo de neon brilhando e
+  ícone em linha de neon com halo — **cada botão numa cor**.
+* Neon realista: luz espalhada em volta do tubo, reflexo da luz por dentro do vidro, miolo de gás
+  quase branco e vidro grosso com filete de luz em cima.
+* Botão ligado fica mais aceso e ganha um ponto no canto; com o mouse por cima o brilho aumenta.
+* Os botões redondos do topo, os itens do menu SETUP e os botões **Interromper** e **Ouvindo**
+  (com as teclas Esc/F4 em vidro com filete neon) também ficaram neon.
+* **Configuração do usuário › VISUAL 2026 › ESTILO DOS BOTÕES:** Neon colorido (padrão), Neon do tema
+  (todos na cor do tema) ou Vidro (o visual anterior).
+
 ## 6.1.7 — 06/11/2026 · Visual 2026
 
 Tudo ajustável em **Configuração do usuário › VISUAL 2026** (aplica na hora).

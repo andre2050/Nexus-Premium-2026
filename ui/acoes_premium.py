@@ -50,8 +50,71 @@ class BotaoAcao(QPushButton):
         self.update()
         super().leaveEvent(e)
 
+    def _cor_neon(self) -> QColor:
+        from .modern import NEON_CORES, estilo_botao
+        if self.estado == "alerta":
+            return qcol(C.RED)
+        if self.cor:
+            return QColor(self.cor)
+        if estilo_botao() == "neon":
+            return QColor(NEON_CORES[getattr(self, "indice", 0) % len(NEON_CORES)])
+        return qcol(C.PRI)
+
+    def _pintar_neon(self):
+        """6.1.7 — ladrilho neon: vidro escuro, contorno brilhando e ícone em neon."""
+        from .modern import ICONE_ACAO, _lerp, desenhar_icone_neon, pintar_vidro
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        r = QRectF(self.rect()).adjusted(5, 4, -5, -5)
+        cor = self._cor_neon()
+        apertado = self.isDown()
+        ligado = self.estado != "normal"
+        pintar_vidro(p, r, 13, cor, aceso=1.0 if ligado else 0.0,
+                     hover=self._hover, press=apertado, alerta=self.estado == "alerta")
+        dy = 1 if apertado else 0
+        chave = ICONE_ACAO.get(self.icone, "")
+        cy = r.top() + 20 + dy
+        if chave:
+            desenhar_icone_neon(p, chave, r.center().x(), cy, 10.5, cor,
+                                1.0 if (ligado or self._hover) else 0.7)
+        else:
+            p.setPen(QColor("#ffffff"))
+            p.setFont(QFont(_FONTE_ICONE, 14))
+            p.drawText(QRectF(r.left(), cy - 13, r.width(), 26), Qt.AlignmentFlag.AlignCenter, self.icone)
+        f = QFont(FONT_MAIN, 7, QFont.Weight.Bold)
+        f.setPointSizeF(6.6)
+        f.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 0.5)
+        nome = self.nome.upper()
+        caixa = QRectF(r.left() + 3, r.top() + 34 + dy, r.width() - 6, max(10.0, r.height() - 35))
+        alinha = Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop
+        if QFontMetrics(f).horizontalAdvance(nome) > caixa.width():
+            # não cabe: letra menor e duas linhas ("SEMPRE / OUVINDO")
+            f.setPointSizeF(5.9)
+            f.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 0.2)
+            caixa.adjust(0, -3, 0, 0)
+            alinha = alinha | Qt.TextFlag.TextWordWrap
+            fm = QFontMetrics(f)
+            if fm.horizontalAdvance(max(nome.split(), key=len)) > caixa.width():
+                nome = fm.elidedText(nome, Qt.TextElideMode.ElideRight, int(caixa.width()))
+        p.setFont(f)
+        p.setPen(QColor("#ffffff") if (ligado or self._hover) else _lerp(cor, QColor("#ffffff"), 0.45))
+        p.drawText(caixa, alinha, nome)
+        if ligado:
+            led = QPointF(r.right() - 9, r.top() + 9)
+            halo = QRadialGradient(led, 7)
+            c0 = QColor(cor); c0.setAlpha(170)
+            c1 = QColor(cor); c1.setAlpha(0)
+            halo.setColorAt(0.0, c0); halo.setColorAt(1.0, c1)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(QBrush(halo)); p.drawEllipse(led, 7, 7)
+            p.setBrush(QColor("#ffffff")); p.drawEllipse(led, 2.2, 2.2)
+        p.end()
+
     def paintEvent(self, _e):
-        from .modern import ICONE_ACAO, pintar_chip_icone, pintar_vidro
+        from .modern import ICONE_ACAO, botao_neon, pintar_chip_icone, pintar_vidro
+        if botao_neon():
+            self._pintar_neon()
+            return
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         r = QRectF(self.rect()).adjusted(3, 2, -3, -5)
@@ -122,8 +185,9 @@ class BarraAcoes(QWidget):
         lay.setContentsMargins(12, 8, 12, 6)
         lay.setSpacing(7)
         self.botoes: dict[str, BotaoAcao] = {}
-        for it in itens:
+        for i, it in enumerate(itens):
             b = BotaoAcao(it["icone"], it["nome"], it.get("dica", it["nome"]), cor=it.get("cor", ""))
+            b.indice = i                 # 6.1.7: cor neon própria de cada botão
             # o clicked manda um bool (checked); as ações não recebem argumento
             b.clicked.connect(lambda _=False, f=it["acao"]: f())
             self.botoes[it["chave"]] = b

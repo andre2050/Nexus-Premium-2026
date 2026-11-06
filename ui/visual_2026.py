@@ -309,6 +309,14 @@ class _Filtro(QObject):
     def _brilho(b: QPushButton, entrou: bool) -> None:
         ef = b.graphicsEffect()
         if entrou:
+            # botões desenhados à mão já brilham sozinhos no estilo neon
+            if type(b).paintEvent is not QPushButton.paintEvent:
+                try:
+                    from .modern import botao_neon
+                    if botao_neon():
+                        return
+                except Exception:
+                    pass
             if ef is None and b.isEnabled():
                 e = QGraphicsDropShadowEffect(b)
                 e.setObjectName("nx_brilho")
@@ -613,6 +621,7 @@ def reaplicar(win=None, so_cores: bool = False) -> None:
         try:
             from . import modern
             modern.definir_estilo_icone(str(_pref("visual_icones", "finas")))
+            modern.definir_estilo_botao(str(_pref("visual_botoes", "neon")))
         except Exception:
             pass
         organizar_paineis(win)

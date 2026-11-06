@@ -913,7 +913,8 @@ def _icone(p: QPainter, chave: str, cx: float, cy: float, r: float, cor: QColor,
     p.save()
     p.translate(cx, cy)
     p.scale(r, r)
-    pen = QPen(cor, _TRACO_ICONE.get(_ESTILO_ICONE, 1.7), Qt.PenStyle.SolidLine,
+    traco = _TRACO_FORCADO if _TRACO_FORCADO is not None else _TRACO_ICONE.get(_ESTILO_ICONE, 1.7)
+    pen = QPen(cor, traco, Qt.PenStyle.SolidLine,
                Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
     pen.setCosmetic(True)
     p.setPen(pen)
@@ -1226,12 +1227,234 @@ def _icone(p: QPainter, chave: str, cx: float, cy: float, r: float, cor: QColor,
     p.restore()
 
 
+# ══════════════════════════════════════════════════════════════════════════
+#  6.1.7 — BOTÕES NEON (vidro escuro + contorno e ícone em tubo de neon)
+# ══════════════════════════════════════════════════════════════════════════
+_ESTILO_BOTAO = "neon"          # neon (cada botão numa cor) | neon_tema | vidro
+NEON_CORES = ("#ff3b5c", "#2bff88", "#ff9f2e", "#25d366", "#26d9ff", "#ffe14a",
+              "#b56bff", "#4d8bff", "#ff4fd8", "#3dffd0", "#9dff3a", "#e8f0ff")
+_TRACO_FORCADO: float | None = None
+_HALO_CACHE: dict = {}
+
+
+def definir_estilo_botao(estilo: str) -> None:
+    global _ESTILO_BOTAO
+    _ESTILO_BOTAO = estilo if estilo in ("neon", "neon_tema", "vidro") else "neon"
+    _HALO_CACHE.clear()
+
+
+def estilo_botao() -> str:
+    return _ESTILO_BOTAO
+
+
+def botao_neon() -> bool:
+    return _ESTILO_BOTAO != "vidro"
+
+
+try:
+    from core import preferences as _P_bt
+    definir_estilo_botao(str(_P_bt.get("visual_botoes") or "neon"))
+except Exception:
+    pass
+
+
+def _icone_traco(p: QPainter, chave: str, cx: float, cy: float, r: float, cor: QColor,
+                 traco: float) -> None:
+    global _TRACO_FORCADO, _DESENHANDO_SOMBRA
+    antes, sombra = _TRACO_FORCADO, _DESENHANDO_SOMBRA
+    _TRACO_FORCADO, _DESENHANDO_SOMBRA = traco, True      # sem a sombra 3D aqui
+    try:
+        _icone(p, chave, cx, cy, r, cor, False)
+    finally:
+        _TRACO_FORCADO, _DESENHANDO_SOMBRA = antes, sombra
+
+
+def _halo_icone(chave: str, cor: QColor, r: float, dpr: float):
+    """O brilho do ícone: desenhado grosso, reduzido e ampliado de novo (desfoque
+    barato). Fica em cache — não recalcula a cada quadro."""
+    k = (chave, cor.rgba(), round(r, 1), round(dpr, 2))
+    pm = _HALO_CACHE.get(k)
+    if pm is not None:
+        return pm
+    if len(_HALO_CACHE) > 300:
+        _HALO_CACHE.clear()
+    S = r * 2 * 2.0 + 10
+    W = max(4, int(S * dpr))
+    base = QPixmap(W, W)
+    base.fill(Qt.GlobalColor.transparent)
+    q = QPainter(base)
+    q.setRenderHint(QPainter.RenderHint.Antialiasing)
+    q.scale(dpr, dpr)
+    _icone_traco(q, chave, S / 2, S / 2, r, cor, 4.6)
+    q.end()
+    pm = _desfocar(base, dpr)
+    _HALO_CACHE[k] = (pm, S)
+    return _HALO_CACHE[k]
+
+
+def _desfocar(base: QPixmap, dpr: float, passos=(4, 3)) -> QPixmap:
+    """Desfoque suave (parecido com gaussiano): reduz e amplia duas vezes."""
+    w, h = base.width(), base.height()
+    pm = base
+    for f in passos:
+        pq = pm.scaled(max(1, w // f), max(1, h // f), Qt.AspectRatioMode.IgnoreAspectRatio,
+                       Qt.TransformationMode.SmoothTransformation)
+        pm = pq.scaled(w, h, Qt.AspectRatioMode.IgnoreAspectRatio,
+                       Qt.TransformationMode.SmoothTransformation)
+    pm.setDevicePixelRatio(dpr)
+    return pm
+
+
+def _bloom_contorno(w: float, h: float, raio: float, cor: QColor, dpr: float, pad: float):
+    """A luz que o tubo de neon espalha em volta (pixmap desfocado, em cache)."""
+    k = ("bloom", round(w), round(h), round(raio), cor.rgba(), round(dpr, 2), pad)
+    got = _HALO_CACHE.get(k)
+    if got is not None:
+        return got
+    W, H = int((w + 2 * pad) * dpr), int((h + 2 * pad) * dpr)
+    base = QPixmap(max(4, W), max(4, H))
+    base.fill(Qt.GlobalColor.transparent)
+    q = QPainter(base)
+    q.setRenderHint(QPainter.RenderHint.Antialiasing)
+    q.scale(dpr, dpr)
+    q.setBrush(Qt.BrushStyle.NoBrush)
+    q.setPen(QPen(cor, 4.0))
+    q.drawRoundedRect(QRectF(pad, pad, w, h), raio, raio)
+    q.end()
+    _HALO_CACHE[k] = _desfocar(base, dpr, (5, 3))
+    return _HALO_CACHE[k]
+
+
+def desenhar_icone_neon(p: QPainter, chave: str, cx: float, cy: float, r: float,
+                        cor: QColor, forca: float = 1.0) -> None:
+    """Ícone em tubo de neon: halo colorido + linha colorida + miolo quase branco."""
+    try:
+        dpr = float(p.device().devicePixelRatioF())
+    except Exception:
+        dpr = 1.0
+    pm, S = _halo_icone(chave, cor, r, dpr)
+    p.save()
+    p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Plus)   # luz soma, como neon de verdade
+    p.setOpacity(max(0.0, min(1.0, 0.40 + 0.40 * forca)))
+    p.drawPixmap(QPointF(cx - S / 2, cy - S / 2), pm)
+    p.restore()
+    # tubo: vidro colorido por fora, gás quase branco no miolo
+    _icone_traco(p, chave, cx, cy, r, _lerp(cor, QColor("#000000"), 0.10), 2.8)
+    _icone_traco(p, chave, cx, cy, r, cor, 1.9)
+    _icone_traco(p, chave, cx, cy, r, _lerp(cor, QColor("#ffffff"), 0.78), 0.8)
+
+
+def _contorno_neon(p: QPainter, r: QRectF, raio: float, cor: QColor, forca: float) -> None:
+    """Tubo de neon realista: luz espalhada (bloom), reflexo da luz no vidro por
+    dentro, tubo colorido e o miolo de gás quase branco."""
+    try:
+        dpr = float(p.device().devicePixelRatioF())
+    except Exception:
+        dpr = 1.0
+    pad = 10.0
+    bloom = _bloom_contorno(r.width(), r.height(), raio, cor, dpr, pad)
+    p.save()
+    p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Plus)
+    p.setOpacity(max(0.0, min(1.0, 0.35 + 0.65 * forca)))
+    p.drawPixmap(QPointF(r.left() - pad, r.top() - pad), bloom)
+    if forca >= 0.95:
+        p.drawPixmap(QPointF(r.left() - pad, r.top() - pad), bloom)
+    p.restore()
+    # luz do tubo refletida no vidro, por dentro da borda
+    p.save()
+    caminho = QPainterPath()
+    caminho.addRoundedRect(r, raio, raio)
+    p.setClipPath(caminho)
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    for larg, a in ((10.0, 14), (5.0, 26)):
+        c = QColor(cor); c.setAlpha(int(a * (0.5 + forca)))
+        p.setPen(QPen(c, larg))
+        p.drawRoundedRect(r, raio, raio)
+    p.restore()
+    # o tubo
+    p.setBrush(Qt.BrushStyle.NoBrush)
+    c = QColor(cor); c.setAlpha(int(170 + 85 * forca))
+    p.setPen(QPen(c, 2.0))
+    p.drawRoundedRect(r, raio, raio)
+    miolo = _lerp(cor, QColor("#ffffff"), 0.72); miolo.setAlpha(int(70 + 170 * forca))
+    p.setPen(QPen(miolo, 0.8))
+    p.drawRoundedRect(r, raio, raio)
+
+
+def _vidro_neon(p: QPainter, r: QRectF, raio: float, cor: QColor, aceso: float,
+                hover: bool, press: bool, alerta: bool) -> None:
+    p.save()
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    if alerta:
+        cor = qcol(C.RED)
+    if press:
+        r = r.translated(0, 1)
+    caminho = QPainterPath()
+    caminho.addRoundedRect(r, raio, raio)
+    # sombra de contato embaixo (o ladrilho "pousa" na barra)
+    if not press:
+        p.setPen(Qt.PenStyle.NoPen)
+        for i, a in ((1, 60), (2, 30)):
+            p.setBrush(QColor(0, 0, 0, a))
+            p.drawRoundedRect(r.adjusted(1, i * 1.2, -1, i * 1.6), raio, raio)
+    # corpo: vidro escuro e grosso, levemente tingido da cor do botão
+    g = QLinearGradient(r.topLeft(), r.bottomLeft())
+    c_topo = _lerp(QColor("#1d2735"), cor, 0.07 + 0.20 * aceso + (0.06 if hover else 0.0))
+    c_meio = _lerp(QColor("#0d131c"), cor, 0.04 + 0.12 * aceso)
+    c_baixo = _lerp(QColor("#05080c"), cor, 0.03 + 0.10 * aceso)
+    c_topo.setAlpha(238); c_meio.setAlpha(242); c_baixo.setAlpha(246)
+    g.setColorAt(0.0, c_topo)
+    g.setColorAt(0.5, c_meio)
+    g.setColorAt(1.0, c_baixo)
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QBrush(g))
+    p.drawPath(caminho)
+    # espessura do vidro: filete claro em cima (luz), escuro embaixo
+    p.save()
+    p.setClipPath(caminho)
+    topo = QLinearGradient(r.left(), 0, r.right(), 0)
+    topo.setColorAt(0.0, QColor(255, 255, 255, 0))
+    topo.setColorAt(0.5, QColor(255, 255, 255, 70 if hover else 52))
+    topo.setColorAt(1.0, QColor(255, 255, 255, 0))
+    p.setPen(QPen(QBrush(topo), 1.0))
+    p.drawLine(QPointF(r.left() + raio * 0.6, r.top() + 2.2), QPointF(r.right() - raio * 0.6, r.top() + 2.2))
+    p.setPen(QPen(QColor(0, 0, 0, 110), 1.2))
+    p.drawLine(QPointF(r.left() + raio * 0.6, r.bottom() - 2.0), QPointF(r.right() - raio * 0.6, r.bottom() - 2.0))
+    p.restore()
+    # luz da cor por dentro (mais forte ligado / com o mouse)
+    rg = QRadialGradient(r.center(), max(r.width(), r.height()) * 0.75)
+    c0 = QColor(cor); c0.setAlpha(int(14 + 52 * aceso + (26 if hover else 0)))
+    c1 = QColor(cor); c1.setAlpha(0)
+    rg.setColorAt(0.0, c0); rg.setColorAt(1.0, c1)
+    p.setBrush(QBrush(rg))
+    p.drawPath(caminho)
+    # reflexo diagonal de vidro (canto de cima à esquerda)
+    p.save()
+    p.setClipPath(caminho)
+    sh = QLinearGradient(r.topLeft(), QPointF(r.left() + r.width() * 0.75, r.top() + r.height() * 0.9))
+    sh.setColorAt(0.0, QColor(255, 255, 255, 46 if hover else 32))
+    sh.setColorAt(0.42, QColor(255, 255, 255, 10))
+    sh.setColorAt(0.43, QColor(255, 255, 255, 0))
+    sh.setColorAt(1.0, QColor(255, 255, 255, 0))
+    p.setBrush(QBrush(sh))
+    p.drawRect(r)
+    p.restore()
+    # contorno em tubo de neon
+    forca = 1.0 if aceso >= 0.5 else (0.85 if hover else 0.5)
+    _contorno_neon(p, r.adjusted(0.8, 0.8, -0.8, -0.8), raio, cor, forca)
+    p.restore()
+
+
 def pintar_vidro(p: QPainter, r: QRectF, raio: float, cor: QColor, *, aceso: float = 0.0,
                  hover: bool = False, press: bool = False, alerta: bool = False) -> None:
     """6.1.3 — acabamento "realista" dos botões: sombra, corpo em relevo, reflexo
     de vidro no topo, filete escuro embaixo e borda iluminada.
 
-    `aceso` (0..1) é quanto a cor do botão toma conta do corpo (ligado = 1)."""
+    `aceso` (0..1) é quanto a cor do botão toma conta do corpo (ligado = 1).
+    6.1.7: no estilo neon (padrão) desenha o vidro escuro com contorno de neon."""
+    if botao_neon():
+        _vidro_neon(p, r, raio, cor, aceso, hover, press, alerta)
+        return
     p.save()
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
     if press:
@@ -1289,7 +1512,12 @@ def pintar_vidro(p: QPainter, r: QRectF, raio: float, cor: QColor, *, aceso: flo
 
 def pintar_chip_icone(p: QPainter, r: QRectF, chave: str, cor: QColor, *, aceso: bool,
                       escala: float = 0.36) -> None:
-    """6.1.3 — o "botãozinho" do ícone: uma pastilha em relevo com o ícone vetorial."""
+    """6.1.3 — o "botãozinho" do ícone: uma pastilha em relevo com o ícone vetorial.
+    6.1.7: no estilo neon não há pastilha — o ícone brilha sozinho."""
+    if botao_neon():
+        desenhar_icone_neon(p, chave, r.center().x(), r.center().y(), r.width() * escala * 1.15,
+                            cor, 1.0 if aceso else 0.6)
+        return
     p.save()
     raio = r.width() * 0.30
     g = QLinearGradient(r.topLeft(), r.bottomLeft())
@@ -1617,9 +1845,14 @@ class PillActionButton(QPushButton):
         W, H = self.width(), self.height()
         hover, press = self.underMouse(), self.isDown()
         cor = QColor(self._cor)
-        r = QRectF(1.5, 1.0, W - 3, H - 4)
-        pintar_vidro(p, r, r.height() / 2, cor, aceso=0.55 if self._aceso else 0.0,
-                     hover=hover, press=press)
+        neon = botao_neon()
+        if neon:     # 6.1.7: ladrilho neon igual ao da barra de ações
+            r = QRectF(4, 3, W - 8, H - 7)
+            pintar_vidro(p, r, 11, cor, aceso=1.0 if self._aceso else 0.0, hover=hover, press=press)
+        else:
+            r = QRectF(1.5, 1.0, W - 3, H - 4)
+            pintar_vidro(p, r, r.height() / 2, cor, aceso=0.55 if self._aceso else 0.0,
+                         hover=hover, press=press)
         dy = 1 if press else 0
         # icon tile
         chip = QRectF(r.left() + 5, r.top() + (r.height() - 26) / 2 + dy, 26, 26)
@@ -1631,6 +1864,17 @@ class PillActionButton(QPushButton):
             fm = p.fontMetrics()
             kw = max(22.0, fm.horizontalAdvance(self._tecla) + 12.0)
             k = QRectF(x_fim - kw, r.center().y() - 9 + dy, kw, 18)
+            if neon:
+                # tecla de vidro escuro com filete de neon na cor do botão
+                p.setPen(Qt.PenStyle.NoPen)
+                p.setBrush(QColor(4, 7, 12, 210))
+                p.drawRoundedRect(k, 5, 5)
+                _contorno_neon(p, k, 5, cor, 0.75 if (hover or self._aceso) else 0.45)
+                p.setPen(QPen(_lerp(cor, QColor("#ffffff"), 0.55), 1))
+                p.drawText(k, Qt.AlignmentFlag.AlignCenter, self._tecla)
+                x_fim = k.left() - 6
+                k = None
+        if self._tecla and k is not None:
             p.setPen(Qt.PenStyle.NoPen)
             p.setBrush(QColor(0, 0, 0, 110))
             p.drawRoundedRect(k.translated(0, 1.6), 4, 4)        # key depth
@@ -1686,8 +1930,13 @@ class HeaderIconButton(QPushButton):
         r = QRectF(1.5, 1.0, W - 3, H - 4)
         pintar_vidro(p, r, r.height() / 2, qcol(C.PRI), aceso=0.9 if aceso else 0.0,
                      hover=hover, press=press)
-        cor = QColor("#ffffff") if (hover or aceso) else qcol(C.PRI)
         dy = 1 if press else 0
+        if botao_neon():
+            desenhar_icone_neon(p, self._ic, r.center().x(), r.center().y() + dy,
+                                r.height() * 0.27, qcol(C.PRI), 1.0 if (hover or aceso) else 0.6)
+            p.end()
+            return
+        cor = QColor("#ffffff") if (hover or aceso) else qcol(C.PRI)
         _icone(p, self._ic, r.center().x(), r.center().y() + dy, r.height() * 0.27, cor, aceso)
         p.end()
 
