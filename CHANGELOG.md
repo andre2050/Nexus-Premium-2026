@@ -2,6 +2,35 @@
 
 O histórico completo das versões anteriores fica em `memory/version.json` (é o que o botão ⬆ ATUALIZAR mostra).
 
+## 6.1.7 — 06/11/2026 · Visual 2026
+
+Tudo ajustável em **Configuração do usuário › VISUAL 2026** (aplica na hora).
+
+### 🪟 Janela
+* **Transparência** ajustável (70–100%) para integrar com a área de trabalho.
+* **Fundo em degradê** suave com textura sutil no lugar do azul sólido.
+* **Barra de título escura** na cor do tema; no Windows 11 também cantos arredondados e borda colorida.
+* **Fonte moderna** (Segoe UI Variable no Windows 11, Bahnschrift no Windows 10) — ou a clássica.
+* **Cursor do mouse** na cor do tema dentro da janela.
+
+### ✨ Efeitos
+* **Brilho** na cor do tema ao passar o mouse nos botões.
+* **Sombra suave** nos títulos dos painéis.
+* **Transições suaves** ao abrir painéis e ao trocar o centro (HUD, câmera, vídeo).
+* **Rolagem suave** com a roda do mouse e barra de rolagem fina que acende ao passar o mouse.
+* **Avisos modernos** no canto da área central (substituem notificações simples dentro do app).
+
+### ◎ Mostrador central
+* Dois visuais novos: **Anel de luz** (minimalista, respira e pulsa com a voz) e **Futurista**
+  (arcos de dados girando, espectro radial, osciloscópio e varredura).
+* **Animação de "ouvindo"**: ondas de luz saindo do núcleo e um equalizador acima de OUVINDO.
+
+### 🎛 Painéis
+* Painéis laterais com **largura arrastável** e **lado trocável** (sistema ou conversa à esquerda).
+* Medidores de **CPU e memória** com escala graduada e ponto aceso na ponta do valor.
+* **Ícones** em linhas finas, normal ou 3D.
+* Quatro temas vibrantes: **Verde neon, Laranja, Magenta e Lima**.
+
 ## 6.1.6 — 05/11/2026 · tempo de resposta
 
 * Espera de fim de fala de **320 → 280 ms**: o NEXUS começa a responder mais cedo em toda fala.

@@ -99,7 +99,29 @@ _OS = platform.system()  # "Windows" | "Darwin" | "Linux"
 # The one typeface. A clean geometric sans present on Windows (and
 # substituted by the system default elsewhere); monospace is kept for data
 # that benefits from aligned digits.
-FONT_MAIN = "Segoe UI"
+def _fonte_principal() -> str:
+    """Visual 2026: fonte moderna quando o Windows tem uma (preferência
+    "visual_fonte"). Segoe UI Variable (Windows 11) ou Bahnschrift (Windows 10+);
+    sem nenhuma delas, a Segoe UI de sempre. Lido uma vez, ao abrir."""
+    try:
+        from core import preferences as _P
+        if str(_P.get("visual_fonte") or "moderna") == "classica":
+            return "Segoe UI"
+    except Exception:
+        pass
+    if _OS == "Windows":
+        pasta = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"
+        for arq, familia in (("SegUIVar.ttf", "Segoe UI Variable Text"),
+                             ("bahnschrift.ttf", "Bahnschrift")):
+            try:
+                if (pasta / arq).exists():
+                    return familia
+            except Exception:
+                pass
+    return "Segoe UI"
+
+
+FONT_MAIN = _fonte_principal()
 FONT_MONO = "Consolas"
 
 

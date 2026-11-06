@@ -94,8 +94,9 @@ class MainWindow(QMainWindow):
         self._clip_history: list[str] = []     # in-memory clipboard history
         self._clip_self = False                # our own copy-back, not a capture
 
-        central = QWidget()
-        central.setStyleSheet(f"background: {_bg_color(C.BG)};")
+        # 6.1.7 — Visual 2026: fundo em degradê com textura sutil (ui/visual_2026.py)
+        from .visual_2026 import FundoGradiente
+        central = FundoGradiente()
         self.setCentralWidget(central)
 
         root = QVBoxLayout(central)
@@ -293,9 +294,16 @@ class MainWindow(QMainWindow):
 
         # 6.1.3: a CONVERSA voltou para a DIREITA; o SISTEMA fica à esquerda.
         self._right_panel = self._build_right_panel()        # conversa (direita)
-        body.addWidget(self._left_panel, stretch=0)
-        body.addWidget(self._center_split, stretch=5)
-        body.addWidget(self._right_panel, stretch=0)
+        # 6.1.7 — Visual 2026: os três painéis ficam num divisor — dá para
+        # arrastar a largura das laterais e trocar o lado delas (Configuração ›
+        # VISUAL 2026). A ordem e as larguras vêm das preferências.
+        from .visual_2026 import preparar_divisor
+        self._body_split = QSplitter(Qt.Orientation.Horizontal)
+        self._body_split.addWidget(self._left_panel)
+        self._body_split.addWidget(self._center_split)
+        self._body_split.addWidget(self._right_panel)
+        preparar_divisor(self, self._body_split)
+        body.addWidget(self._body_split, stretch=1)
 
         root.addLayout(body, stretch=1)
         self._root_layout = root
@@ -377,6 +385,22 @@ class MainWindow(QMainWindow):
         self._shortcuts: list[QShortcut] = []
         self._install_shortcuts()
 
+        # 6.1.7 — Visual 2026: transparência, barra de título, cursor, brilho,
+        # sombras, transições e avisos modernos. Nunca impede a janela de abrir.
+        try:
+            from . import visual_2026
+            visual_2026.aplicar(self)
+        except Exception as e:
+            print(f"[Visual] Visual 2026 desligado: {e}")
+
+    def _x_previa_camera(self, pw: int) -> int:
+        """Canto direito da área central (a conversa pode estar em qualquer lado)."""
+        try:
+            cs = self._center_split
+            return cs.mapTo(self.centralWidget(), QPoint(cs.width(), 0)).x() - pw - 12
+        except Exception:
+            return self.centralWidget().width() - _RIGHT_W - pw - 12
+
     def _show_camera_frame(self, img_bytes: bytes):
         """Slot — display camera preview overlay (main thread)."""
         self._cam_preview.show_frame(img_bytes)
@@ -384,7 +408,7 @@ class MainWindow(QMainWindow):
         pw = _CameraPreview._W
         ph = self._cam_preview.height()
         self._cam_preview.setGeometry(
-            cw.width() - _RIGHT_W - pw - 12,     # 6.1.3: a conversa voltou para a direita
+            self._x_previa_camera(pw),
             cw.height() - ph - 28,
             pw, ph,
         )
@@ -944,7 +968,7 @@ class MainWindow(QMainWindow):
         pw = _CameraPreview._W
         ph = self._cam_preview.height() or _CameraPreview._H
         self._cam_preview.setGeometry(
-            cw.width() - _RIGHT_W - pw - 12,     # 6.1.3: a conversa voltou para a direita
+            self._x_previa_camera(pw),
             cw.height() - ph - 28,
             pw, ph,
         )

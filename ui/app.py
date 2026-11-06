@@ -196,6 +196,16 @@ class NexusUI:
 
     def notify_phone_connected(self) -> None:
         self._win.notify_phone_connected()
+        self.notificar("Celular conectado", "O controle remoto está pronto.", "ok")
+
+    def notificar(self, titulo: str, texto: str = "", tipo: str = "info") -> None:
+        """Thread-safe (6.1.7): aviso moderno no canto da janela.
+        tipo: info | ok | alerta | erro."""
+        try:
+            from .visual_2026 import notificar as _n
+            _n(titulo, texto, tipo)
+        except Exception:
+            pass
 
     def set_state(self, state: str):
         self._win._state_sig.emit(state)

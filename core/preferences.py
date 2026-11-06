@@ -70,6 +70,14 @@ DEFAULTS = {
     "mic_sensitivity": 1.0,        # modo Claude: multiplica o limiar de ruído (0.6 = capta voz baixa, 1.6 = ignora barulho)
     "wake_sensitivity": 0.5,       # palavra de ativação: confiança mínima (0.35 = acorda fácil, 0.7 = menos alarme falso)
     "wake_engine": "auto",         # 1.5: "auto" | "nexus" (Whisper, "Hey Nexus") | "jarvis" (openWakeWord, "Hey Jarvis") | "treinada" (2.3: rede neural treinada na sua voz)
+    # ── Visual 2026 (ui/visual_2026.py) ──────────────────────────────────────
+    "visual_transparencia": 96,    # opacidade da janela em % (70 = bem transparente, 100 = sólida)
+    "visual_fonte": "moderna",     # moderna (Bahnschrift / Segoe UI Variable) | classica (Segoe UI)
+    "visual_efeitos": True,        # brilho nos botões, sombra nos títulos e transições suaves
+    "visual_cursor": True,         # cursor do mouse com a cor do tema dentro da janela
+    "visual_icones": "finas",      # finas | normal | 3d
+    "visual_paineis": "padrao",    # padrao (sistema à esquerda) | invertido (conversa à esquerda)
+    "visual_larguras": [],         # larguras dos painéis arrastadas pelo usuário
 }
 
 PROFILES = {

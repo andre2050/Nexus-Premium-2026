@@ -379,8 +379,8 @@ class RingGauge(QWidget):
             return
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         W = self.width()
-        d = min(W - 14, 70)
-        rect = QRectF((W - d) / 2, 6, d, d)
+        d = min(W - 22, 66)                  # 6.1.7: espaço para a escala graduada
+        rect = QRectF((W - d) / 2, 10, d, d)
         a, b = _grad_ends(self._value, self._color or C.PRI)
         START, SPAN = 225.0, 270.0          # graus (Qt: 0° = 3h, anti-horário)
 
@@ -411,6 +411,28 @@ class RingGauge(QWidget):
                            Qt.PenCapStyle.RoundCap if (i == 0 or last) else Qt.PenCapStyle.FlatCap)
                 p.setPen(pen)
                 p.drawArc(rect, int((START - i * seg) * 16), int(-(seg + 0.6) * 16))
+
+        # 6.1.7 — escala graduada fora do arco e ponto aceso na ponta do valor
+        cx_, cy_, rr = rect.center().x(), rect.center().y(), d / 2.0
+        for k in range(11):
+            ang = math.radians(START - SPAN * k / 10.0)
+            ca, sa = math.cos(ang), -math.sin(ang)
+            on = k * 10 <= self._shown + 0.5
+            p.setPen(QPen(_lerp(a, b, k / 10.0) if on else qcol(C.BORDER_B), 1.2,
+                          Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+            p.drawLine(QPointF(cx_ + ca * (rr + 5.5), cy_ + sa * (rr + 5.5)),
+                       QPointF(cx_ + ca * (rr + 8.5), cy_ + sa * (rr + 8.5)))
+        if self._shown > 0.4:
+            ang = math.radians(START - SPAN * self._shown / 100.0)
+            pt = QPointF(cx_ + math.cos(ang) * rr, cy_ - math.sin(ang) * rr)
+            halo = QRadialGradient(pt, 9)
+            h0 = QColor(b); h0.setAlpha(200)
+            h1 = QColor(b); h1.setAlpha(0)
+            halo.setColorAt(0.0, h0); halo.setColorAt(1.0, h1)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(QBrush(halo)); p.drawEllipse(pt, 9, 9)
+            p.setBrush(QColor("#ffffff")); p.drawEllipse(pt, 2.4, 2.4)
+            p.setBrush(Qt.BrushStyle.NoBrush)
 
         # valor no centro
         indisp = self._text in ("--", "N/D", "N/A")
@@ -859,13 +881,40 @@ class GradientLabel(QLabel):
 #  BOTÕES DO PAINEL CONTROLES  (visual 2.2)
 # ══════════════════════════════════════════════════════════════════════════
 
+# 6.1.7 — Visual 2026: estilo dos ícones vetoriais ("finas", "normal" ou "3d")
+_ESTILO_ICONE = "finas"
+_TRACO_ICONE = {"finas": 1.15, "normal": 1.7, "3d": 1.8}
+_DESENHANDO_SOMBRA = False
+
+
+def definir_estilo_icone(estilo: str) -> None:
+    global _ESTILO_ICONE
+    _ESTILO_ICONE = estilo if estilo in _TRACO_ICONE else "finas"
+
+
+try:
+    from core import preferences as _P_ic
+    definir_estilo_icone(str(_P_ic.get("visual_icones") or "finas"))
+except Exception:
+    pass
+
+
 def _icone(p: QPainter, chave: str, cx: float, cy: float, r: float, cor: QColor, fundo: bool) -> None:
     """Desenha um ícone vetorial de ~2r de lado, centrado em (cx, cy). Sem emoji:
     fica nítido em qualquer tamanho e tem a cor do tema."""
+    global _DESENHANDO_SOMBRA
+    if _ESTILO_ICONE == "3d" and not _DESENHANDO_SOMBRA:
+        # 3D: uma cópia escura deslocada embaixo dá relevo ao ícone
+        _DESENHANDO_SOMBRA = True
+        try:
+            _icone(p, chave, cx + r * 0.10, cy + r * 0.16, r, QColor(0, 0, 0, 170), fundo)
+        finally:
+            _DESENHANDO_SOMBRA = False
     p.save()
     p.translate(cx, cy)
     p.scale(r, r)
-    pen = QPen(cor, 1.7, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+    pen = QPen(cor, _TRACO_ICONE.get(_ESTILO_ICONE, 1.7), Qt.PenStyle.SolidLine,
+               Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
     pen.setCosmetic(True)
     p.setPen(pen)
     p.setBrush(Qt.BrushStyle.NoBrush)

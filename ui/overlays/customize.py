@@ -27,6 +27,11 @@ TEMAS = (
     ("Oceano",      "#3b82ff", "vortice"),
     ("Ouro",        "#ffc233", "engrenagem"),
     ("Mono",        "#b4bccd", "reator"),
+    # 6.1.7 — Visual 2026: cores vibrantes com os mostradores novos
+    ("Verde neon",  "#39ff14", "anel"),
+    ("Laranja",     "#ff8a1f", "futurista"),
+    ("Magenta",     "#ff2bd6", "anel"),
+    ("Lima",        "#c6ff00", "futurista"),
 )
 
 
@@ -330,6 +335,8 @@ class CustomizeOverlay(QWidget):
         lay.addWidget(self._hex_input)
         self._sync_chips()
 
+        self._montar_visual_2026(lay, _lbl)
+
         if embedded:
             return                     # the unified window's SALVAR / FECHAR drive it
 
@@ -364,6 +371,112 @@ class CustomizeOverlay(QWidget):
         cancel_btn.clicked.connect(self._cancel)
         btn_row.addWidget(cancel_btn)
         lay.addLayout(btn_row)
+
+    # ── 6.1.7 — Visual 2026 (aplica na hora; ui/visual_2026.py) ────────────────
+    def _montar_visual_2026(self, lay, _lbl):
+        from PyQt6.QtWidgets import QSlider
+        from .. import visual_2026 as V
+
+        lay.addSpacing(8)
+        lay.addWidget(_lbl("VISUAL 2026  —  aplica na hora", 8, True, color=C.PRI,
+                           align=Qt.AlignmentFlag.AlignLeft))
+
+        def _grupo(titulo, chave, opcoes, padrao, ao_mudar=None):
+            lay.addWidget(_lbl(titulo, 8, color=C.TEXT_DIM, align=Qt.AlignmentFlag.AlignLeft))
+            linha = QHBoxLayout(); linha.setSpacing(4)
+            botoes = {}
+            atual = str(V._pref(chave, padrao))
+
+            def _pintar(sel):
+                for v, b in botoes.items():
+                    on = v == sel
+                    b.setChecked(on)
+                    b.setStyleSheet(f"""
+                        QPushButton {{ background: {C.PRI_GHO if on else C.PANEL2};
+                            color: {C.PRI if on else C.TEXT_DIM};
+                            border: 1px solid {C.PRI if on else C.BORDER_A};
+                            border-radius: 14px; }}
+                        QPushButton:hover {{ color: {C.WHITE}; border-color: {C.PRI}; }}""")
+
+            def _clique(v):
+                V.salvar(**{chave: v})
+                _pintar(v)
+                if ao_mudar:
+                    ao_mudar(v)
+                V.reaplicar()
+
+            for v, rotulo in opcoes:
+                b = QPushButton(rotulo)
+                b.setCheckable(True)
+                b.setFixedHeight(28)
+                b.setFont(QFont(FONT_MAIN, 8, QFont.Weight.Bold))
+                b.setCursor(Qt.CursorShape.PointingHandCursor)
+                b.clicked.connect(lambda _=False, v=v: _clique(v))
+                botoes[v] = b
+                linha.addWidget(b)
+            lay.addLayout(linha)
+            _pintar(atual)
+
+        # transparência
+        lay.addWidget(_lbl("TRANSPARÊNCIA DA JANELA", 8, color=C.TEXT_DIM,
+                           align=Qt.AlignmentFlag.AlignLeft))
+        tr_row = QHBoxLayout(); tr_row.setSpacing(8)
+        self._vis_op = QSlider(Qt.Orientation.Horizontal)
+        self._vis_op.setRange(70, 100)
+        try:
+            self._vis_op.setValue(int(V._pref("visual_transparencia", 96)))
+        except (TypeError, ValueError):
+            self._vis_op.setValue(96)
+        self._vis_op.setStyleSheet(f"""
+            QSlider::groove:horizontal {{ height: 4px; background: {C.BAR_BG}; border-radius: 2px; }}
+            QSlider::sub-page:horizontal {{ background: {C.PRI}; border-radius: 2px; }}
+            QSlider::handle:horizontal {{ width: 14px; height: 14px; margin: -6px 0;
+                border-radius: 7px; background: {C.WHITE}; border: 2px solid {C.PRI}; }}""")
+        self._vis_op_lbl = QLabel(f"{self._vis_op.value()}%")
+        self._vis_op_lbl.setFixedWidth(38)
+        self._vis_op_lbl.setStyleSheet(f"color: {C.TEXT_MED}; background: transparent;")
+
+        def _op_mudou(v):
+            self._vis_op_lbl.setText(f"{v}%")
+            w = V.janela()
+            if w is not None:
+                w.setWindowOpacity(v / 100.0)
+        self._vis_op.valueChanged.connect(_op_mudou)
+        self._vis_op.sliderReleased.connect(
+            lambda: V.salvar(visual_transparencia=int(self._vis_op.value())))
+        self._vis_op.valueChanged.connect(
+            lambda v: None if self._vis_op.isSliderDown() else V.salvar(visual_transparencia=int(v)))
+        tr_row.addWidget(self._vis_op, 1)
+        tr_row.addWidget(self._vis_op_lbl)
+        lay.addLayout(tr_row)
+
+        _grupo("FONTE DO TEXTO  (vale ao reabrir o NEXUS)", "visual_fonte",
+               (("moderna", "MODERNA"), ("classica", "CLÁSSICA")), "moderna",
+               lambda v: V.notificar("Fonte do texto", "A fonte nova aparece quando o NEXUS for reaberto."))
+        _grupo("ÍCONES", "visual_icones",
+               (("finas", "LINHAS FINAS"), ("normal", "NORMAL"), ("3d", "3D")), "finas")
+        _grupo("POSIÇÃO DOS PAINÉIS  (arraste as bordas para mudar a largura)", "visual_paineis",
+               (("padrao", "SISTEMA À ESQUERDA"), ("invertido", "CONVERSA À ESQUERDA")), "padrao")
+
+        rest = QPushButton("RESTAURAR LARGURAS DOS PAINÉIS")
+        rest.setFixedHeight(26)
+        rest.setFont(QFont(FONT_MAIN, 7, QFont.Weight.Bold))
+        rest.setCursor(Qt.CursorShape.PointingHandCursor)
+        rest.setStyleSheet(f"""
+            QPushButton {{ background: transparent; color: {C.TEXT_MED};
+                border: 1px solid {C.BORDER}; border-radius: 13px; padding: 0 10px; }}
+            QPushButton:hover {{ color: {C.TEXT}; border-color: {C.PRI}; }}""")
+        rest.clicked.connect(lambda: (V.salvar(visual_larguras=[]), V.reaplicar()))
+        lay.addWidget(rest)
+
+        for chave, texto in (("visual_efeitos", "Brilho nos botões, sombra nos títulos e transições suaves"),
+                             ("visual_cursor", "Cursor do mouse com a cor do tema")):
+            cb = QCheckBox(texto)
+            cb.setChecked(bool(V._pref(chave, True)))
+            cb.setFont(QFont(FONT_MAIN, 8))
+            cb.setStyleSheet(f"color: {C.TEXT_MED}; background: transparent;")
+            cb.toggled.connect(lambda on, k=chave: (V.salvar(**{k: bool(on)}), V.reaplicar()))
+            lay.addWidget(cb)
 
     # ── voice selection ──────────────────────────────────────────────────────
     def _on_voice_pick(self, name: str):

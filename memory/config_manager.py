@@ -138,7 +138,7 @@ def save_push_to_talk_enabled(enabled: bool) -> None:
 # hub e os do Ultra 2026 saíram da escolha; quem tinha um deles salvo passa
 # para o "reator" (get_hud_style abaixo).
 HUD_STYLES = ("reator", "hexagono", "prisma", "cubo", "iris", "engrenagem", "atomo", "mandala",
-              "espectro", "vortice")
+              "espectro", "vortice", "anel", "futurista")
 
 
 def get_hud_style() -> str:

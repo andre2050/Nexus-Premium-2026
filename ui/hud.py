@@ -343,6 +343,13 @@ class HudCanvas(QWidget):
         else:
             self._so_barras(p, W, H, main, amp)
 
+        # 6.1.7 — ouvindo: anel pulsante + ondas sonoras em volta do núcleo
+        if self.state == "LISTENING" and not self.muted and not self.speaking:
+            try:
+                self._efeito_ouvindo(p, cx, cy, R, base_y, W, acc, amp)
+            except Exception:
+                pass
+
         # texto de estado
         if self.muted:
             txt, col = "⊘  MUDO", qcol(C.MUTED_C)
@@ -424,6 +431,32 @@ class HudCanvas(QWidget):
         borda = QColor(main); borda.setAlpha(150)
         p.setPen(QPen(borda, 1.2)); p.setBrush(Qt.BrushStyle.NoBrush)
         p.drawEllipse(QPointF(cx, cy), rc * 1.22, rc * 1.22)
+
+    def _efeito_ouvindo(self, p: QPainter, cx: float, cy: float, R: float,
+                        base_y: float, W: int, cor: QColor, amp: float) -> None:
+        """Enquanto o NEXUS ouve: ondas de luz saindo do centro (mais fortes com a
+        sua voz) e um pequeno equalizador logo acima do texto OUVINDO."""
+        t = time.monotonic()
+        p.save()
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        for k in range(3):
+            f = ((t * 0.7) + k / 3.0) % 1.0
+            rr = R * (0.78 + 0.42 * f)
+            a = (1.0 - f) ** 1.8 * (55 + 200 * min(1.0, amp * 1.5))
+            p.setPen(QPen(self._rgba(cor, a), 1.2 + 2.0 * (1.0 - f)))
+            p.drawEllipse(QPointF(cx, cy), rr, rr)
+        # equalizador: 11 barras arredondadas
+        n, bw, gap = 11, 4.0, 4.0
+        x0 = cx - (n * bw + (n - 1) * gap) / 2
+        y = base_y - 12
+        hist = list(self._hist)
+        for i in range(n):
+            v = hist[-1 - abs(i - n // 2)] if hist else 0.0
+            h = 4 + 18 * min(1.0, v * 1.8) + 3 * (0.5 + 0.5 * math.sin(t * 6 + i * 0.7))
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(self._rgba(cor, 120 + 120 * min(1.0, v * 1.6)))
+            p.drawRoundedRect(QRectF(x0 + i * (bw + gap), y - h / 2, bw, h), 2, 2)
+        p.restore()
 
     def _so_barras(self, p: QPainter, W: int, H: int, main: QColor, amp: float) -> None:
         """Modo mínimo: só uma linha de barras (quase sem custo)."""

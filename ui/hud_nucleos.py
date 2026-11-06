@@ -464,4 +464,10 @@ def _fabrica(nid: str):
 
 # Mesmo formato de ULTRA_STYLES: chave -> (ícone, nome, descrição, função)
 NUCLEO_STYLES: dict = {nid: (v[0], v[1], v[2], _fabrica(nid)) for nid, v in _NUCLEOS.items()}
+# 6.1.7 — Visual 2026: anel de luz (minimalista) e futurista (gráficos em movimento)
+try:
+    from .hud_2026 import ESTILOS_2026
+    NUCLEO_STYLES.update(ESTILOS_2026)
+except Exception as _e:      # pragma: no cover — um visual nunca derruba o HUD
+    print(f"[HUD] visuais 2026 indisponíveis: {_e}")
 NUCLEO_INFO = {k: v[:3] for k, v in NUCLEO_STYLES.items()}

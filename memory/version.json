@@ -1,8 +1,13 @@
 {
-  "version": "6.1.6",
+  "version": "6.1.7",
   "codename": "Nexus Premium 2026",
-  "released": "2026-11-05",
+  "released": "2026-11-06",
   "changelog": [
+    {
+      "version": "6.1.7",
+      "date": "2026-11-06",
+      "notes": "Visual 2026: janela com transparência ajustável, fundo em degradê com textura sutil, barra de título escura na cor do tema (cantos arredondados no Windows 11), fonte moderna, brilho nos botões ao passar o mouse, sombra nos títulos dos painéis, transições e rolagem suaves, barra de rolagem fina, cursor na cor do tema e avisos modernos no canto da janela. Dois mostradores novos (Anel de luz e Futurista), ondas e equalizador quando o NEXUS está ouvindo, medidores de CPU/memória com escala e ponto aceso, ícones em linhas finas, normal ou 3D, painéis laterais com largura arrastável e lado trocável, e quatro temas vibrantes (Verde neon, Laranja, Magenta, Lima). Tudo ajustável em Configuração do usuário > VISUAL 2026."
+    },
     {
       "version": "6.1.6",
       "date": "2026-11-05",
